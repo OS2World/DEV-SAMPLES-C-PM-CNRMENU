@@ -3,7 +3,7 @@ CNRMENU creates a standard window with a container as a child of the client wind
 
 LICENSE
 ===============
-* BSD alike
+* BSD 3-Clause License
 
 COMPILE TOOLS
 ===============
