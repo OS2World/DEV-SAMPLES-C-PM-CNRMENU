@@ -24,7 +24,7 @@
  *                                                                   *
  *********************************************************************/
 
-#pragma strings(readonly)   // used for debug version of memory mgmt routines
+// #pragma strings(readonly)   // used for debug version of memory mgmt routines
 
 /*********************************************************************/
 /*------- Include relevant sections of the OS/2 header files --------*/
@@ -215,4 +215,3 @@ static SHORT APIENTRY DateCompare( PRECORDCORE prc1, PRECORDCORE prc2, PVOID pv)
 /*************************************************************************
  *                     E N D     O F     S O U R C E                     *
  *************************************************************************/
-

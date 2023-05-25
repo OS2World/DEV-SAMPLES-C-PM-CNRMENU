@@ -29,7 +29,7 @@
  *                                                                   *
  *********************************************************************/
 
-#pragma strings(readonly)   // used for debug version of memory mgmt routines
+// #pragma strings(readonly)   // used for debug version of memory mgmt routines
 
 /*********************************************************************/
 /*------- Include relevant sections of the OS/2 header files --------*/
@@ -98,7 +98,7 @@ VOID EditBegin( HWND hwndClient, PCNREDITDATA pced )
 
     if( !pi )
     {
-        Msg( "EditBegin cant get Inst data. RC(%X)", HWNDERR( hwndClient ) );
+        Msg( (PSZ) "EditBegin cant get Inst data. RC(%X)", HWNDERR( hwndClient ) );
 
         return;
     }
@@ -126,7 +126,7 @@ VOID EditBegin( HWND hwndClient, PCNREDITDATA pced )
         if( WinSendMsg( hwndMLE, MLM_SETTEXTLIMIT,
                         MPFROMLONG( GetMaxNameSize( pi->szDirectory[ 0 ] ) ),
                         NULL) )
-            Msg( "MLM_SETTEXTLIMIT failed. RC(%X)", HWNDERR( hwndClient ) );
+            Msg( (PSZ) "MLM_SETTEXTLIMIT failed. RC(%X)", HWNDERR( hwndClient ) );
     }
 
     return;
@@ -155,7 +155,7 @@ VOID EditEnd( HWND hwndClient, PCNREDITDATA pced )
 
     if( !pi )
     {
-        Msg( "EditEnd cant get Inst data. RC(%X)", HWNDERR( hwndClient ) );
+        Msg( (PSZ) "EditEnd cant get Inst data. RC(%X)", HWNDERR( hwndClient ) );
 
         return;
     }
@@ -172,9 +172,9 @@ VOID EditEnd( HWND hwndClient, PCNREDITDATA pced )
     {
         CHAR szNewName[ CCHMAXPATH + 1 ];
 
-        WinQueryWindowText( hwndMLE, sizeof( szNewName ), szNewName );
+        WinQueryWindowText( hwndMLE, sizeof( szNewName ), (PCH) szNewName );
 
-        if( RenameFile( hwndCnr, pci, szNewName ) )
+        if( RenameFile( hwndCnr, pci, (PSZ) szNewName ) )
         {
             (void) strcpy( pci->szFileName, szNewName );
 
@@ -218,7 +218,7 @@ static ULONG GetMaxNameSize( CHAR chDrive )
 
     // Get the file system type for this drive (i.e. HPFS, FAT, etc.)
 
-    rc = DosQueryFSAttach( szDrive, 0, FSAIL_QUERYNAME, (PFSQBUFFER2) achBuf,
+    rc = DosQueryFSAttach( (PCSZ) szDrive, 0, FSAIL_QUERYNAME, (PFSQBUFFER2) achBuf,
                            &cbBuf );
 
     // Should probably handle ERROR_BUFFER_OVERFLOW more gracefully, but not
@@ -230,7 +230,7 @@ static ULONG GetMaxNameSize( CHAR chDrive )
     {
         szFSDName = pfsqb->szName + pfsqb->cbName + 1;
 
-        if( !stricmp( "FAT", szFSDName ) )
+        if( !stricmp( "FAT", (const char *) szFSDName ) )
             cbFileName = 12;
         else
             cbFileName = CCHMAXPATH;         // If not FAT, assume maximum path
@@ -264,7 +264,7 @@ static BOOL RenameFile( HWND hwndCnr, PCNRITEM pci, PSZ szNewName )
 
     if( !pi )
     {
-        Msg( "RenameFile cant get Inst data. RC(%X)", HWNDERR( hwndCnr ) );
+        Msg( (PSZ) "RenameFile cant get Inst data. RC(%X)", HWNDERR( hwndCnr ) );
 
         return FALSE;
     }
@@ -274,7 +274,7 @@ static BOOL RenameFile( HWND hwndCnr, PCNRITEM pci, PSZ szNewName )
 
     (void) strcpy( szCurrentPath, pi->szDirectory );
 
-    FullyQualify( szCurrentPath, hwndCnr, pci );
+    FullyQualify( (PSZ) szCurrentPath, hwndCnr, pci );
 
     (void) strcpy( pi->achWorkBuf, szCurrentPath );
 
@@ -284,24 +284,24 @@ static BOOL RenameFile( HWND hwndCnr, PCNRITEM pci, PSZ szNewName )
     // DosMove( "d:\path\file.ext", "d:\path\file.ren" );
     // So we add file.ren after the last backslash of the current pathname.
 
-    pch = strrchr( pi->achWorkBuf, '\\' );
+     pch = (PCH) strrchr( pi->achWorkBuf, '\\' );
 
     if( pch )
         *(pch + 1) = 0;
     else
         pi->achWorkBuf[ 0 ] = 0;
 
-    (void) strcat( pi->achWorkBuf, szNewName );
+    (void) strcat( pi->achWorkBuf, (const char * restrict) szNewName );
 
     // Do the rename. Alert the user if the rename was not successful. It
     // won't be successful if, for instance, the user tries to change the name
     // to a name that is already used in that directory.
 
-    rc = DosMove( szCurrentPath, pi->achWorkBuf );
+    rc = DosMove( (PCSZ) szCurrentPath, (PCSZ) pi->achWorkBuf );
 
     if( rc )
     {
-        Msg( "DosMove of %s to %s failed! RC(%u)", szCurrentPath,
+        Msg( (PSZ) "DosMove of %s to %s failed! RC(%u)", szCurrentPath,
              pi->achWorkBuf, rc );
 
         fSuccess = FALSE;
@@ -360,7 +360,7 @@ static VOID RefreshAllContainers( HWND hwndCnr, PCNRITEM pci )
                 // renamed record. Since we don't know if this container has
                 // the renamed record, ignore the return code.
 
-                if( WinQueryClassName( hwndClient, sizeof(szClass), szClass ) )
+                if( WinQueryClassName( hwndClient, sizeof(szClass), (PCH) szClass ) )
                     if( !strcmp( szClass, DIRECTORY_WINCLASS ) )
                         WinSendDlgItemMsg( hwndClient, CNR_DIRECTORY,
                                     CM_INVALIDATERECORD, MPFROMP( &pci ),
@@ -371,7 +371,7 @@ static VOID RefreshAllContainers( HWND hwndCnr, PCNRITEM pci )
         WinEndEnumWindows( hwndEnum );
     }
     else
-        Msg( "RefreshAllContainers EnumWindows RC(%X)", HWNDERR( hwndCnr ) );
+        Msg( (PSZ) "RefreshAllContainers EnumWindows RC(%X)", HWNDERR( hwndCnr ) );
 
     return;
 }
@@ -379,4 +379,3 @@ static VOID RefreshAllContainers( HWND hwndCnr, PCNRITEM pci )
 /*************************************************************************
  *                     E N D     O F     S O U R C E                     *
  *************************************************************************/
-

@@ -1,60 +1,38 @@
-###########################################################################
-#                                                                         #
-# MAKE FILE FOR CNRMENU.EXE                                               #
-#                                                                         #
-# NOTES:                                                                  #
-#                                                                         #
-#  To enable the C Set/2 memory management debugging code, uncomment the  #
-#  DEBUGALLOC macro. The debugging info will be sent to CNRMENU.DBG.      #
-#                                                                         #
-# HISTORY:                                                                #
-#                                                                         #
-#  10-24-92 - copied from CNRBASE.EXE sample.                             #
-#             added ctxtmenu.c to build list.                             #
-#             added edit.c to build list.                                 #
-#             added sort.c to build list.                                 #
-#                                                                         #
-#  Rick Fishman                                                           #
-#  Code Blazers, Inc.                                                     #
-#  4113 Apricot                                                           #
-#  Irvine, CA. 92720                                                      #
-#  CIS ID: 72251,750                                                      #
-#                                                                         #
-###########################################################################
+# nmake makefile
+#
+# Tools used:
+#  Compile::Watcom Resource Compiler
+#  Compile::GNU C
+#  Make: nmake or GNU make
+all : cnrmenu.exe
 
-#DEBUGALLOC=-D__DEBUG_ALLOC__
+cnrmenu.exe : cnrmenu.obj cnrmenu.res common.obj create.obj ctxtmenu.obj edit.obj populate.obj sort.obj cnrmenu.def
+	gcc -Zomf cnrmenu.obj common.obj create.obj ctxtmenu.obj edit.obj populate.obj sort.obj cnrmenu.def -o cnrmenu.exe
+	wrc cnrmenu.res
 
-BASE=cnrmenu
+cnrmenu.obj : cnrmenu.c cnrmenu.h
+	gcc -Wall -Zomf -c -O2 cnrmenu.c -o cnrmenu.obj
 
-CFLAGS=/Q+ /Ss /W3 /Kbcepr /Gm+ /Gd- /Ti+ /O- $(DEBUGALLOC) /C
-LFLAGS=/NOI /NOE /MAP /DE /NOL /A:16 /EXEPACK /BASE:65536
+common.obj : common.c 
+	gcc -Wall -Zomf -c -O2 common.c -o common.obj
 
-.SUFFIXES: .c
+create.obj : create.c 
+	gcc -Wall -Zomf -c -O2 create.c -o create.obj
 
-.c.obj:
-    icc $(CFLAGS) $*.c
+ctxtmenu.obj : ctxtmenu.c 
+	gcc -Wall -Zomf -c -O2 ctxtmenu.c -o ctxtmenu.obj
 
-OFILES=$(BASE).obj create.obj populate.obj common.obj ctxtmenu.obj edit.obj \
-       sort.obj
+edit.obj : edit.c 
+	gcc -Wall -Zomf -c -O2 edit.c -o edit.obj
 
-LFILES=$(OFILES:.obj=)
+populate.obj : populate.c 
+	gcc -Wall -Zomf -c -O2 populate.c -o populate.obj
 
-$(BASE).exe: $(OFILES) $(BASE).res $(BASE).def
-    link386 $(LFLAGS) $(LFILES),,, os2386, $*
-    rc $*.res $@
+sort.obj : sort.c
+	gcc -Wall -Zomf -c -O2 sort.c -o sort.obj
 
-$(BASE).res: $*.rc $(BASE).h makefile
-    rc -r $*
+cnrmenu.res : cnrmenu.rc 
+	wrc -r cnrmenu.rc
 
-$(BASE).obj:  $*.c $(BASE).h makefile
-create.obj:   $*.c $(BASE).h makefile
-common.obj:   $*.c $(BASE).h makefile
-populate.obj: $*.c $(BASE).h makefile
-ctxtmenu.obj: $*.c $(BASE).h makefile
-edit.obj:     $*.c $(BASE).h makefile
-sort.obj:     $*.c $(BASE).h makefile
-
-###########################################################################
-#                       E N D   O F   S O U R C E                         #
-###########################################################################
-
+clean :
+	rm -rf *exe *res *obj

@@ -1,9 +1,14 @@
+Name: 		CNRMENU
+Descripcion: 	Container controls C PM Sample.
+Date: 		2023-05-25
+Version:	1.01
+----------------------------  
+
+
+DESCRIPTION
+-----------
 CNRMENU.EXE is a sample program for container controls that builds on the
 CNRBASE.EXE sample program.
-
-CNRBASE.EXE and its source code is downloadable from Compuserve (OS2DF1 forum,
-PM section) as CNRBAS.ZIP. It is a sample program that demonstrates setting up
-a container control and not much else.
 
 CNRMENU takes CNRBASE a little further by demonstrating context menus, multiple
 instances of CNRBASE' directory window, multiple container controls sharing
@@ -103,19 +108,50 @@ functions in the source modules are shown.
       message to the client window.
 
 
-Hope this sample program helps someone.
+REQUIREMENTS
+------------
+- yum install git gcc make libc-devel binutils watcom-wrc watcom-wlink-hll
 
-===============================================================================
-GLOBAL HISTORY (KEPT SINCE 1/31/93 - Before that, kept on a per-module basis)
+COMPILE INSTRUCTIONS
+--------------------
+This version of this sample was modified to compile on ArcaOS with GCC 9 compiler. 
 
-3-27-93 - Changed PSZ szArg[] to char *argv[] in cnrmenu.c because of 3/93
-          compiler bug.
+1) Remember to have correct header files your path. For GCC the correct ones are the included on the "libc-devel", not the ones from the OS/2 Toolkit. Check your config.sys for "SET INCLUDE=C:\usr\include"
 
-===============================================================================
+2) Since I'm using the Watcom Resource Compiler (open source) instead of the classic rc.exe, and the the Watcom Linker, intead of the classic ilink.exe, add to your config.sys...
+ SET EMXOMFLD_LINKER=wl.exe
+ SET EMXOMFLD_TYPE=WLINK
+ SET EMXOMFLD_RC_TYPE=WRC
+ SET EMXOMFLD_RC=wrc.exe
 
-Rick Fishman
-Code Blazers, Inc.
-4113 Apricot
-Irvine, CA 92720
+3) Run "make" or "make 2>&1 |tee make.out" to get the log file.
 
-CIS ID: 72251,750
+
+TOOLS USED
+----------
+- ArcaOS	- Verion 5.0.7
+- wrc 		- Version 2.0beta1
+- gcc		- gcc (GCC) 9.2.0 20190812 (OS/2 RPM build 9.2.0-5.oc00)
+- make 		- Version 3.81 k2 (2017-11-10)
+
+TROUBLESHOOT
+------------
+The compile produce will run by just executing make on the directory, but a compile.cmd file is includes to store the log in a file. If you want to save the log file you can run it as "nmake 2>&1 |tee make.out". The log will be saved into the "make.out" file.
+
+HISTORY
+---------- 
+- 1.01 - 2023-05-25
+Changed version to compile on gcc and to run on ArcaOS 5.0.7.
+
+- 1.00 - 1993-01-31
+Changed PSZ szArg[] to char *argv[] in cnrmenu.c because of 3/93 compiler bug.
+Original version by Rick Fishman from Code Blazers, Inc.
+
+LICENSE
+-------
+The 3-Clause BSD License.
+
+AUTHORS
+-------
+- Martin Iturbide (2023)
+- Rick Fishman from Code Blazers, Inc.

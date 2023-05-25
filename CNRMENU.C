@@ -90,7 +90,7 @@
  *                                                                   *
  *********************************************************************/
 
-#pragma strings(readonly)   // used for debug version of memory mgmt routines
+// #pragma strings(readonly)   // used for debug version of memory mgmt routines
 
 /*********************************************************************/
 /*------- Include relevant sections of the OS/2 header files --------*/
@@ -182,7 +182,7 @@ INT main( INT iArgc, char *szArg[] )
     // Get the directory to display from the command line if specified.
 
     if( iArgc > 1 )
-        szStartingDir = szArg[ 1 ];
+        szStartingDir =  (PSZ) szArg[ 1 ];
 
     hab = WinInitialize( 0 );
 
@@ -200,7 +200,7 @@ INT main( INT iArgc, char *szArg[] )
         // CS_SIZEREDRAW needed for initial display of the container in the
         // client window. Allocate enough extra bytes for 1 window word.
 
-        fSuccess = WinRegisterClass( hab, DIRECTORY_WINCLASS, wpClient,
+        fSuccess = WinRegisterClass( hab, (PCSZ) DIRECTORY_WINCLASS, wpClient,
                                      CS_SIZEREDRAW, sizeof( PVOID ) );
     else
     {
@@ -215,7 +215,7 @@ INT main( INT iArgc, char *szArg[] )
 
         hwndFrame = CreateDirectoryWin( szStartingDir, NULLHANDLE, NULL );
     else
-        Msg( "WinRegisterClass RC(%X)", HABERR( hab ) );
+        Msg( (PSZ) "WinRegisterClass RC(%X)", HABERR( hab ) );
 
     if( hwndFrame )
         while( WinGetMsg( hab, &qmsg, NULLHANDLE, 0, 0 ) )
@@ -292,7 +292,7 @@ MRESULT EXPENTRY wpClient( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             if( !WinSetWindowPos( WinWindowFromID( hwnd, CNR_DIRECTORY ),
                                   NULLHANDLE, 0, 0, SHORT1FROMMP( mp2 ),
                                   SHORT2FROMMP( mp2 ), SWP_MOVE | SWP_SIZE ) )
-                Msg( "WM_SIZE WinSetWindowPos RC(%X)", HWNDERR( hwnd ) );
+                Msg( (PSZ) "WM_SIZE WinSetWindowPos RC(%X)", HWNDERR( hwnd ) );
 
             return 0;
 
@@ -331,7 +331,7 @@ MRESULT EXPENTRY wpClient( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                 // time we do a WinLoadMenu in ctxtmenu.c
 
                 if( !WinDestroyWindow( (HWND) mp2 ) )
-                    Msg( "WM_MENUEND WinDestroyWindow RC(%X)", HWNDERR( hwnd ));
+                    Msg( (PSZ) "WM_MENUEND WinDestroyWindow RC(%X)", HWNDERR( hwnd ));
             }
 
             break;
@@ -410,14 +410,14 @@ static BOOL InitClient( HWND hwndClient, PWINCREATE pwc )
         {
             fSuccess = FALSE;
 
-            Msg( "InitClient WinSetWindowPtr RC(%X)", HWNDERR( hwndClient ) );
+            Msg( (PSZ) "InitClient WinSetWindowPtr RC(%X)", HWNDERR( hwndClient ) );
         }
     }
     else
     {
         fSuccess = FALSE;
 
-        Msg( "InitClient out of memory!" );
+        Msg( (PSZ) "InitClient out of memory!" );
     }
 
     return fSuccess;
@@ -509,7 +509,7 @@ static VOID RecordSelected( HWND hwndClient, PNOTIFYRECORDENTER pnre )
 
     if( !pi )
     {
-        Msg( "RecordSelected cant get Inst data. RC(%X)", HWNDERR(hwndClient) );
+        Msg( (PSZ) "RecordSelected cant get Inst data. RC(%X)", HWNDERR(hwndClient) );
 
         return;
     }
@@ -558,7 +558,7 @@ static VOID ContainerFilled( HWND hwndClient )
 
     if( !pi )
     {
-        Msg( "ContainerFilled cant get Inst data. RC(%X)", HWNDERR(hwndClient));
+        Msg( (PSZ) "ContainerFilled cant get Inst data. RC(%X)", HWNDERR(hwndClient));
 
         return;
     }
@@ -578,7 +578,7 @@ static VOID ContainerFilled( HWND hwndClient )
         // the container was being filled, the titlebar text was changed
         // to indicate progress.
 
-        SetWindowTitle( hwndClient, "%s [%s]", PROGRAM_TITLE, pi->szDirectory );
+        SetWindowTitle( hwndClient, (PSZ) "%s [%s]", PROGRAM_TITLE, pi->szDirectory );
     }
 
     return;
@@ -603,7 +603,7 @@ static VOID UserWantsToClose( HWND hwndClient )
 
     if( !pi )
     {
-        Msg( "UserWantsToClose cant get Inst data. RC(%X)",HWNDERR(hwndClient));
+        Msg( (PSZ) "UserWantsToClose cant get Inst data. RC(%X)",HWNDERR(hwndClient));
 
         return;
     }
@@ -620,7 +620,7 @@ static VOID UserWantsToClose( HWND hwndClient )
         // Indicate in the titlebar that the window is in the process of
         // closing.
 
-        SetWindowTitle( hwndClient, "%s: CLOSING...", PROGRAM_TITLE );
+        SetWindowTitle( hwndClient, (PSZ) "%s: CLOSING...", PROGRAM_TITLE );
 
         // Set a flag that will tell the Fill thread to shut down
 
@@ -650,7 +650,7 @@ static VOID FreeResources( HWND hwndClient )
     if( pi )
         free( pi );
     else
-        Msg( "FreeResources cant get Inst data. RC(%X)", HWNDERR( hwndClient ));
+        Msg( (PSZ) "FreeResources cant get Inst data. RC(%X)", HWNDERR( hwndClient ));
 
     // Free the memory that was allocated with CM_ALLOCDETAILFIELDINFO. The
     // zero in the first SHORT of mp2 says to free memory for all columns
@@ -658,7 +658,7 @@ static VOID FreeResources( HWND hwndClient )
     if( -1 == (INT) WinSendDlgItemMsg( hwndClient, CNR_DIRECTORY,
                                        CM_REMOVEDETAILFIELDINFO, NULL,
                                        MPFROM2SHORT( 0, CMA_FREE ) ) )
-        Msg( "CM_REMOVEDETAILFIELDINFO failed! RC(%X)", HWNDERR( hwndClient ) );
+        Msg( (PSZ) "CM_REMOVEDETAILFIELDINFO failed! RC(%X)", HWNDERR( hwndClient ) );
 
     // Free the memory allocated by the CM_INSERTRECORD messages. The zero
     // in the first SHORT of mp2 says to free memory for all records
@@ -666,7 +666,7 @@ static VOID FreeResources( HWND hwndClient )
     if( -1 == (INT) WinSendDlgItemMsg( hwndClient, CNR_DIRECTORY,
                                        CM_REMOVERECORD, NULL,
                                        MPFROM2SHORT( 0, CMA_FREE ) ) )
-        Msg( "CM_REMOVERECORD failed! RC(%X)", HWNDERR( hwndClient ) );
+        Msg( (PSZ) "CM_REMOVERECORD failed! RC(%X)", HWNDERR( hwndClient ) );
 
     return;
 }

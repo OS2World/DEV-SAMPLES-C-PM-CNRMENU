@@ -28,7 +28,7 @@
  *                                                                   *
  *********************************************************************/
 
-#pragma strings(readonly)   // used for debug version of memory mgmt routines
+// #pragma strings(readonly)   // used for debug version of memory mgmt routines
 
 /*********************************************************************/
 /*------- Include relevant sections of the OS/2 header files --------*/
@@ -98,7 +98,7 @@ VOID SetWindowTitle( HWND hwndClient, PSZ szFormat,... )
 
     va_start( argptr, szFormat );
 
-    vsprintf( szMsg, szFormat, argptr );
+    vsprintf( (char * restrict) szMsg, (const char * restrict) szFormat, argptr );
 
     va_end( argptr );
 
@@ -143,7 +143,7 @@ VOID Msg( PSZ szFormat,... )
 
     va_start( argptr, szFormat );
 
-    vsprintf( szMsg, szFormat, argptr );
+    vsprintf( (char * restrict) szMsg, (const char * restrict) szFormat, argptr );
 
     va_end( argptr );
 
@@ -154,7 +154,7 @@ VOID Msg( PSZ szFormat,... )
     (void) WinAlarm( HWND_DESKTOP, WA_WARNING );
 
     (void) WinMessageBox(  HWND_DESKTOP, HWND_DESKTOP, szMsg,
-                           PROGRAM_TITLE, 1, MB_OK | MB_MOVEABLE );
+                           (PCSZ) PROGRAM_TITLE, 1, MB_OK | MB_MOVEABLE );
 
     free( szMsg );
 
@@ -182,15 +182,15 @@ VOID FullyQualify( PSZ szDirectory, HWND hwndCnr, PCNRITEM pci )
                                      MPFROM2SHORT(CMA_PARENT, CMA_ITEMORDER) );
 
     if( (INT) pciParent == -1 )
-        Msg( "FullyQualify... CM_QUERYRECORD RC(%X)", HWNDERR( hwndCnr ) );
+        Msg( (PSZ) "FullyQualify... CM_QUERYRECORD RC(%X)", HWNDERR( hwndCnr ) );
     else
     {
         if( pciParent )
             FullyQualify( szDirectory, hwndCnr, pciParent );
 
-        (void) strcat( szDirectory, "\\" );
+        (void) strcat( (char * restrict) szDirectory, "\\" );
 
-        (void) strcat( szDirectory, pci->szFileName );
+        (void) strcat( (char * restrict) szDirectory, pci->szFileName );
     }
 
     return;
@@ -199,4 +199,3 @@ VOID FullyQualify( PSZ szDirectory, HWND hwndCnr, PCNRITEM pci )
 /*************************************************************************
  *                     E N D     O F     S O U R C E                     *
  *************************************************************************/
-

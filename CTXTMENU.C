@@ -30,7 +30,7 @@
  *                                                                   *
  *********************************************************************/
 
-#pragma strings(readonly)   // used for debug version of memory mgmt routines
+// #pragma strings(readonly)   // used for debug version of memory mgmt routines
 
 /*********************************************************************/
 /*------- Include relevant sections of the OS/2 header files --------*/
@@ -112,14 +112,14 @@ VOID CtxtmenuCreate( HWND hwndClient, PCNRITEM pciSelected )
 
     if( !pi )
     {
-        Msg( "CtxtmenuCreate cant get Inst data. RC(%X)", HWNDERR(hwndClient) );
+        Msg( (PSZ) "CtxtmenuCreate cant get Inst data. RC(%X)", HWNDERR(hwndClient) );
 
         return;
     }
 
     if( !hwndMenu )
     {
-        Msg( "CtxtmenuCreate WinLoadMenu RC(%X)", HWNDERR( hwndClient ) );
+        Msg( (PSZ) "CtxtmenuCreate WinLoadMenu RC(%X)", HWNDERR( hwndClient ) );
 
         return;
     }
@@ -157,11 +157,11 @@ VOID CtxtmenuCreate( HWND hwndClient, PCNRITEM pciSelected )
         fSuccess = WinMapWindowPoints( HWND_DESKTOP, hwndClient, &ptl, 1 );
 
         if( !fSuccess )
-            Msg( "CtxtmenuCreate WinMapWindowPoints failed! RC(%X)",
+            Msg( (PSZ) "CtxtmenuCreate WinMapWindowPoints failed! RC(%X)",
                  HWNDERR( hwndClient ) );
     }
     else
-        Msg( "CtxtmenuCreate WinQueryPointerPos failed! RC(%X)",
+        Msg( (PSZ) "CtxtmenuCreate WinQueryPointerPos failed! RC(%X)",
              HWNDERR( hwndClient ) );
 
     // Add/remove menu items, etc.
@@ -171,7 +171,7 @@ VOID CtxtmenuCreate( HWND hwndClient, PCNRITEM pciSelected )
     if( !WinPopupMenu( hwndClient, hwndClient, hwndMenu, ptl.x, ptl.y,
                        idStart, PU_HCONSTRAIN | PU_VCONSTRAIN | PU_KEYBOARD |
                        PU_MOUSEBUTTON1 | PU_MOUSEBUTTON2 | PU_NONE ) )
-        Msg( "CtxtmenuCreate WinPopupMenu failed! RC(%X)", HWNDERR(hwndClient));
+        Msg( (PSZ) "CtxtmenuCreate WinPopupMenu failed! RC(%X)", HWNDERR(hwndClient));
 
     return;
 }
@@ -239,7 +239,7 @@ VOID CtxtmenuCommand( HWND hwndClient, ULONG idCommand, ULONG ulCmdSrc )
 
             if( !WinSendDlgItemMsg( hwndClient, CNR_DIRECTORY, CM_ARRANGE,
                                     NULL, NULL ) )
-                Msg( "CtxtmenuCommand CM_ARRANGE RC(%X)", HWNDERR(hwndClient) );
+                Msg( (PSZ) "CtxtmenuCommand CM_ARRANGE RC(%X)", HWNDERR(hwndClient) );
 
             break;
 
@@ -309,7 +309,7 @@ VOID CtxtmenuSetView( HWND hwndClient, ULONG ulViewType )
 
     if( !pi )
     {
-        Msg( "CtxtmenuSetView cant get Inst data. RC(%X)", HWNDERR(hwndClient));
+        Msg( (PSZ) "CtxtmenuSetView cant get Inst data. RC(%X)", HWNDERR(hwndClient));
 
         return;
     }
@@ -374,7 +374,7 @@ VOID CtxtmenuSetView( HWND hwndClient, ULONG ulViewType )
 
     (void) strcat( pi->szCnrTitle, pi->szDirectory );
 
-    cnri.pszCnrTitle = pi->szCnrTitle;
+    cnri.pszCnrTitle = (PSZ) pi->szCnrTitle;
 
     // Set the line spacing between rows to be the minimal value so we conserve
     // on container whitespace.
@@ -389,7 +389,7 @@ VOID CtxtmenuSetView( HWND hwndClient, ULONG ulViewType )
                             MPFROMP( &cnri ),
                             MPFROMLONG( CMA_FLWINDOWATTR | CMA_CNRTITLE |
                                         CMA_LINESPACING ) ) )
-        Msg( "CtxtmenuSetView CM_SETCNRINFO RC(%X)", HWNDERR( hwndClient ) );
+        Msg( (PSZ) "CtxtmenuSetView CM_SETCNRINFO RC(%X)", HWNDERR( hwndClient ) );
 
     // The CM_ARRANGE message is applicable only in ICON view. It will arrange
     // the icons according to CUA. Note that this message is unnecessary if
@@ -400,7 +400,7 @@ VOID CtxtmenuSetView( HWND hwndClient, ULONG ulViewType )
     if( ulViewType == CV_ICON )
         if( !WinSendDlgItemMsg( hwndClient, CNR_DIRECTORY, CM_ARRANGE, NULL,
                                 NULL ) )
-            Msg( "CtxtmenuSetView CM_ARRANGE RC(%X)", HWNDERR( hwndClient ) );
+            Msg( (PSZ) "CtxtmenuSetView CM_ARRANGE RC(%X)", HWNDERR( hwndClient ) );
 
     return;
 }
@@ -424,7 +424,7 @@ VOID CtxtmenuEnd( HWND hwndClient )
 
     if( !pi )
     {
-        Msg( "CtxtmenuEnd cant get Instdata RC(%X)", HWNDERR(hwndClient));
+        Msg( (PSZ) "CtxtmenuEnd cant get Instdata RC(%X)", HWNDERR(hwndClient));
 
         return;
     }
@@ -463,7 +463,7 @@ static VOID TurnOffSelFlags( HWND hwndCnr )
 
         if( (INT) pci == -1 )
         {
-            Msg( "TurnOffSelFlags CM_QUERYRECORD RC(%X)", HWNDERR( hwndCnr ) );
+            Msg( (PSZ) "TurnOffSelFlags CM_QUERYRECORD RC(%X)", HWNDERR( hwndCnr ) );
 
             break;
         }
@@ -502,14 +502,14 @@ static VOID NewWindows( HWND hwndClient, BOOL fAllSelected )
 
     if( !pi )
     {
-        Msg( "NewWindows cant get Inst data RC(%X)", HWNDERR( hwndClient ) );
+        Msg( (PSZ) "NewWindows cant get Inst data RC(%X)", HWNDERR( hwndClient ) );
 
         return;
     }
 
     // Create new window for the currently selected record
 
-    NewWin( hwndCnr, pi->szDirectory, pi->pciSelected );
+    NewWin( hwndCnr,(PSZ) pi->szDirectory, pi->pciSelected );
 
     // Create new windows for all records that have source emphasis if the
     // flag passed to this function indicates that we are to do this. We would
@@ -523,7 +523,7 @@ static VOID NewWindows( HWND hwndClient, BOOL fAllSelected )
 
         if( (INT) pci == -1 )
         {
-            Msg( "NewWindows CM_QUERYRECORD RC(%X)", HWNDERR( hwndCnr ) );
+            Msg( (PSZ) "NewWindows CM_QUERYRECORD RC(%X)", HWNDERR( hwndCnr ) );
 
             break;
         }
@@ -532,7 +532,7 @@ static VOID NewWindows( HWND hwndClient, BOOL fAllSelected )
             break;
 
         if( pci->fSelected && pci != pi->pciSelected )
-            NewWin( hwndCnr, pi->szDirectory, pci );
+            NewWin( hwndCnr, (PSZ) pi->szDirectory, pci );
 
         usWhatRec = CMA_NEXT;
     }
@@ -562,7 +562,7 @@ static VOID TurnOnSourceEmphasis( HWND hwndClient )
 
     if( !pi )
     {
-        Msg( "TurnOn..Emphasis cant get Inst data RC(%X)", HWNDERR(hwndClient));
+        Msg( (PSZ) "TurnOn..Emphasis cant get Inst data RC(%X)", HWNDERR(hwndClient));
 
         return;
     }
@@ -578,7 +578,7 @@ static VOID TurnOnSourceEmphasis( HWND hwndClient )
     {
         if( !WinSendMsg( hwndCnr, CM_SETRECORDEMPHASIS, MPFROMP( NULL ),
                          MPFROM2SHORT( TRUE, CRA_SOURCE ) ) )
-            Msg( "CM_SETRECORDEMPHASIS failed! RC(%X)", HWNDERR( hwndClient ) );
+            Msg( (PSZ) "CM_SETRECORDEMPHASIS failed! RC(%X)", HWNDERR( hwndClient ) );
 
         return;
     }
@@ -625,7 +625,7 @@ static VOID TurnOnSourceEmphasis( HWND hwndClient )
 
                 if( !WinSendMsg( hwndCnr, CM_SETRECORDEMPHASIS, MPFROMP( pci ),
                                  MPFROM2SHORT( TRUE, CRA_SOURCE ) ) )
-                    Msg( "CM_SETRECORDEMPHASIS failed! RC(%X)",
+                    Msg( (PSZ) "CM_SETRECORDEMPHASIS failed! RC(%X)",
                          HWNDERR( hwndClient ) );
 
                 pci->fSelected = TRUE;
@@ -640,7 +640,7 @@ static VOID TurnOnSourceEmphasis( HWND hwndClient )
             if( !WinSendMsg( hwndCnr, CM_SETRECORDEMPHASIS,
                              MPFROMP( pi->pciSelected ),
                              MPFROM2SHORT( TRUE, CRA_SOURCE ) ) )
-                Msg( "CM_SETRECORDEMPHASIS failed! RC(%X)",HWNDERR(hwndClient));
+                Msg( (PSZ) "CM_SETRECORDEMPHASIS failed! RC(%X)",HWNDERR(hwndClient));
 
             pi->pciSelected->fSelected = TRUE;
 
@@ -673,7 +673,7 @@ static VOID TurnOffSourceEmphasis( HWND hwndClient )
 
     if( !pi )
     {
-        Msg( "TurnOff..Emphasis cant get Instdata RC(%X)", HWNDERR(hwndClient));
+        Msg( (PSZ) "TurnOff..Emphasis cant get Instdata RC(%X)", HWNDERR(hwndClient));
 
         return;
     }
@@ -690,7 +690,7 @@ static VOID TurnOffSourceEmphasis( HWND hwndClient )
         if( !WinSendMsg( hwndCnr, CM_SETRECORDEMPHASIS,
                          MPFROMP( pi->pciSelected ),
                          MPFROM2SHORT( FALSE, CRA_SOURCE ) ) )
-            Msg( "TurnOff..Emphasis CM_SETRECORDEMPHASIS failed! RC(%X)",
+            Msg( (PSZ) "TurnOff..Emphasis CM_SETRECORDEMPHASIS failed! RC(%X)",
                  HWNDERR( hwndClient ) );
 
         while( fTrue )
@@ -704,14 +704,14 @@ static VOID TurnOffSourceEmphasis( HWND hwndClient )
             if( pci != pi->pciSelected )
                 if( !WinSendMsg( hwndCnr, CM_SETRECORDEMPHASIS, MPFROMP( pci ),
                                  MPFROM2SHORT( FALSE, CRA_SOURCE ) ) )
-                    Msg( "TurnOff... CM_SETRECORDEMPHASIS failed! RC(%X)",
+                    Msg( (PSZ) "TurnOff... CM_SETRECORDEMPHASIS failed! RC(%X)",
                          HWNDERR( hwndClient ) );
         }
     }
     else
         if( !WinSendMsg( hwndCnr, CM_SETRECORDEMPHASIS, MPFROMP( NULL ),
                          MPFROM2SHORT( FALSE, CRA_SOURCE ) ) )
-            Msg( "TurnOff...Emphasis CM_SETRECORDEMPHASIS failed! RC(%X)",
+            Msg( (PSZ) "TurnOff...Emphasis CM_SETRECORDEMPHASIS failed! RC(%X)",
                  HWNDERR( hwndClient ) );
 
     return;
@@ -785,18 +785,18 @@ static VOID NewWin( HWND hwndCnr, PSZ szBaseDir, PCNRITEM pci )
     {
         CHAR szDirectory[ CCHMAXPATH + 1 ];
 
-        (void) strcpy( szDirectory, szBaseDir );
+        (void) strcpy( szDirectory, (const char * restrict) szBaseDir );
 
         // Recursively go up the tree and add the subdirectory names to the
         // fully qualified directory name.
 
-        FullyQualify( szDirectory, hwndCnr, pci );
+        FullyQualify( (PSZ) szDirectory, hwndCnr, pci );
 
         // CreateDirectoryWin is in CREATE.C. By specifying pci as the third
         // parameter we are saying that we want the new container to share
         // records with this one.
 
-        (void) CreateDirectoryWin( szDirectory, hwndCnr, pci );
+        (void) CreateDirectoryWin( (PSZ) szDirectory, hwndCnr, pci );
     }
 
     return;
@@ -824,7 +824,7 @@ static VOID TailorMenu( HWND hwndCnr, HWND hwndMenu, PCNRITEM pciSelected )
 
     if( !pi )
     {
-        Msg( "TailorMenu cant get Instdata RC(%X)", HWNDERR( hwndCnr ) );
+        Msg( (PSZ) "TailorMenu cant get Instdata RC(%X)", HWNDERR( hwndCnr ) );
 
         return;
     }
@@ -844,7 +844,7 @@ static VOID TailorMenu( HWND hwndCnr, HWND hwndMenu, PCNRITEM pciSelected )
           && pciSelected->szFileName[0] != '.')) )
         if( !WinSendMsg( hwndMenu, MM_DELETEITEM,
                          MPFROM2SHORT( IDM_CREATE_NEWWIN, FALSE ), NULL ) )
-            Msg( "TailorMenu MM_DELETEITEM failed for IDM_CREATE_NEWWIN RC(%X)",
+            Msg( (PSZ) "TailorMenu MM_DELETEITEM failed for IDM_CREATE_NEWWIN RC(%X)",
                   HWNDERR( hwndMenu ) );
 
     if( WinSendMsg( hwndCnr, CM_QUERYCNRINFO, MPFROMP( &cnri ),
@@ -857,11 +857,11 @@ static VOID TailorMenu( HWND hwndCnr, HWND hwndMenu, PCNRITEM pciSelected )
         if( (cnri.flWindowAttr & CV_TREE) || !(cnri.flWindowAttr & CV_ICON) )
             if( !WinSendMsg( hwndMenu, MM_DELETEITEM,
                              MPFROM2SHORT( IDM_ARRANGE, FALSE ), NULL ) )
-                Msg( "TailorMenu MM_DELETEITEM failed for IDM_ARRANGE RC(%X)",
+                Msg( (PSZ) "TailorMenu MM_DELETEITEM failed for IDM_ARRANGE RC(%X)",
                      HWNDERR( hwndMenu ) );
     }
     else
-        Msg( "TailorMenu MM_DELETEITEM failed for IDM_CREATE_NEWWIN RC(%X)",
+        Msg( (PSZ) "TailorMenu MM_DELETEITEM failed for IDM_CREATE_NEWWIN RC(%X)",
               HWNDERR( hwndCnr ) );
 
     // Add a menu item for each directory window (other than our's) that we
@@ -871,7 +871,7 @@ static VOID TailorMenu( HWND hwndCnr, HWND hwndMenu, PCNRITEM pciSelected )
     if( !AddOtherWindows( hwndCnr, hwndMenu ) )
         if( !WinSendMsg( hwndMenu, MM_DELETEITEM,
                          MPFROM2SHORT( IDM_OTHERWIN_SUBMENU, FALSE ), NULL ) )
-            Msg( "TailorMenu MM_DELETEITEM failed for IDM_OTHERWIN_SUB RC(%X)",
+            Msg( (PSZ) "TailorMenu MM_DELETEITEM failed for IDM_OTHERWIN_SUB RC(%X)",
                  HWNDERR( hwndMenu ) );
 
     return;
@@ -909,13 +909,13 @@ static VOID SetConditionalCascade( HWND hwndMenu, USHORT idSubMenu,
 
             if( !WinSendMsg( mi.hwndSubMenu, MM_SETDEFAULTITEMID,
                              MPFROMSHORT( idDefaultItem ), NULL ) )
-               Msg( "MM_SETDEFAULTITEMID failed! RC(%X)", HWNDERR( hwndMenu ) );
+               Msg( (PSZ) "MM_SETDEFAULTITEMID failed! RC(%X)", HWNDERR( hwndMenu ) );
         }
         else
-            Msg( "Set...Cascade WinSetWindowBits RC(%X)", HWNDERR( hwndMenu ) );
+            Msg( (PSZ) "Set...Cascade WinSetWindowBits RC(%X)", HWNDERR( hwndMenu ) );
     }
     else
-        Msg( "Set...Cascade MM_QUERYITEM failed! RC(%X)", HWNDERR( hwndMenu ) );
+        Msg( (PSZ) "Set...Cascade MM_QUERYITEM failed! RC(%X)", HWNDERR( hwndMenu ) );
 
     return;
 }
@@ -943,7 +943,7 @@ static INT AddOtherWindows( HWND hwndCnr, HWND hwndMenu )
     if( !WinSendMsg( hwndMenu, MM_QUERYITEM,
                      MPFROM2SHORT( IDM_OTHERWIN_SUBMENU, TRUE ), &miSubMenu ) )
     {
-        Msg( "AddOtherWindows MM_QUERYITEM RC(%X)", HWNDERR( hwndMenu ) );
+        Msg( (PSZ) "AddOtherWindows MM_QUERYITEM RC(%X)", HWNDERR( hwndMenu ) );
 
         return 0;
     }
@@ -979,7 +979,7 @@ static INT AddOtherWindows( HWND hwndCnr, HWND hwndMenu )
                 // submenu.
 
                 if( hwndClient != PARENT( hwndCnr ) &&
-                    WinQueryClassName( hwndClient, sizeof(szClass), szClass ) )
+                    WinQueryClassName( hwndClient, sizeof(szClass), (PCH) szClass ) )
                 {
                     if( !strcmp( szClass, DIRECTORY_WINCLASS ) )
                         if( AddOtherWinItem( PARENT( hwndCnr ), hwndFrame,
@@ -996,7 +996,7 @@ static INT AddOtherWindows( HWND hwndCnr, HWND hwndMenu )
         WinEndEnumWindows( hwndEnum );
     }
     else
-        Msg( "AddOtherWindows WinBeginEnumWindows RC(%X)", HWNDERR( hwndCnr ) );
+        Msg( (PSZ) "AddOtherWindows WinBeginEnumWindows RC(%X)", HWNDERR( hwndCnr ) );
 
     return iOthers;
 }
@@ -1042,7 +1042,7 @@ static BOOL AddOtherWinItem( HWND hwndClient, HWND hwndOtherFrame,
 
         piUs->hwndFrame[ idMenuItem - IDM_OTHERWIN_ITEM1 ] = hwndOtherFrame;
 
-        sMenuRC = (SHORT) WinSendMsg( hwndSubMenu, MM_INSERTITEM,
+        sMenuRC = (LONG) WinSendMsg( hwndSubMenu, MM_INSERTITEM,
                                       MPFROMP( &miItem ),
                                       MPFROMP( piOther->szDirectory ) );
 
@@ -1050,7 +1050,7 @@ static BOOL AddOtherWinItem( HWND hwndClient, HWND hwndOtherFrame,
         {
             fSuccess = FALSE;
 
-            Msg( "AddOtherWinItem MM_INSERTITEM MenuRC(%d) RC(%X)",
+            Msg( (PSZ) "AddOtherWinItem MM_INSERTITEM MenuRC(%d) RC(%X)",
                  sMenuRC, HWNDERR( hwndClient ) );
         }
     }
@@ -1058,7 +1058,7 @@ static BOOL AddOtherWinItem( HWND hwndClient, HWND hwndOtherFrame,
     {
         fSuccess = FALSE;
 
-        Msg( "AddOtherWindows cant get Inst data RC(%X)", HWNDERR(hwndClient) );
+        Msg( (PSZ) "AddOtherWindows cant get Inst data RC(%X)", HWNDERR(hwndClient) );
     }
 
     return fSuccess;
@@ -1090,15 +1090,15 @@ static USHORT GetDefaultId( HWND hwndClient, USHORT idSubMenu )
         if( WinSendMsg( hwndMenu, MM_QUERYITEM, MPFROM2SHORT( idSubMenu, TRUE ),
                         &mi ))
         {
-            id = (USHORT) WinSendMsg( mi.hwndSubMenu,
+            id = (ULONG) WinSendMsg( mi.hwndSubMenu,
                                       MM_QUERYDEFAULTITEMID, NULL, NULL );
 
             if( !id )
-                Msg( "GetDefaultId MM_QUERYDEFAULTITEMID RC(%X)",
+                Msg( (PSZ) "GetDefaultId MM_QUERYDEFAULTITEMID RC(%X)",
                       HWNDERR( hwndClient ) );
         }
         else
-            Msg( "GetDefaultId MM_QUERYITEM RC(%X)", HWNDERR( hwndClient ) );
+            Msg( (PSZ) "GetDefaultId MM_QUERYITEM RC(%X)", HWNDERR( hwndClient ) );
     }
 
 /*****************************************************************************
@@ -1126,4 +1126,3 @@ BUG BUG BUG BUG BUG BUG BUG BUG BUG BUG BUG BUG BUG BUG BUG BUG BUG BUG BUG
 /*************************************************************************
  *                     E N D     O F     S O U R C E                     *
  *************************************************************************/
-

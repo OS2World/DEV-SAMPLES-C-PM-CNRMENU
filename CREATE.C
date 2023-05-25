@@ -48,7 +48,7 @@
  *                                                                   *
  *********************************************************************/
 
-#pragma strings(readonly)   // used for debug version of memory mgmt routines
+// #pragma strings(readonly)   // used for debug version of memory mgmt routines
 
 /*********************************************************************/
 /*------- Include relevant sections of the OS/2 header files --------*/
@@ -152,12 +152,12 @@ HWND CreateDirectoryWin( PSZ szDirectory, HWND hwndCnrShare, PCNRITEM pciParent)
             pwc->hwndCnrShare = hwndCnrShare;
             pwc->pciParent    = pciParent;
 
-            hwndClient = WinCreateWindow( hwndFrame, DIRECTORY_WINCLASS, NULL,
+            hwndClient = WinCreateWindow( hwndFrame, (PCSZ) DIRECTORY_WINCLASS, NULL,
                                           0, 0, 0, 0, 0, NULLHANDLE, HWND_TOP,
                                           FID_CLIENT, pwc, NULL );
         }
         else
-            Msg( "Out of memory in CreateContainer!" );
+            Msg( (PSZ) "Out of memory in CreateContainer!" );
     }
 
     if( hwndClient )
@@ -169,7 +169,7 @@ HWND CreateDirectoryWin( PSZ szDirectory, HWND hwndCnrShare, PCNRITEM pciParent)
         {
             hwndFrame = NULLHANDLE;
 
-            Msg( "hwndFrame WinSetWindowPos RC(%X)", HWNDERR( hwndClient ) );
+            Msg( (PSZ) "hwndFrame WinSetWindowPos RC(%X)", HWNDERR( hwndClient ) );
         }
     }
     else
@@ -202,7 +202,7 @@ HWND CreateContainer( HWND hwndClient, PSZ szDirectory, HWND hwndCnrShare,
 
     if( !pi )
     {
-        Msg( "CreateContainer cant get Inst data. RC(%X)", HWNDERR(hwndClient));
+        Msg( (PSZ) "CreateContainer cant get Inst data. RC(%X)", HWNDERR(hwndClient));
 
         return NULLHANDLE;
     }
@@ -238,11 +238,11 @@ HWND CreateContainer( HWND hwndClient, PSZ szDirectory, HWND hwndCnrShare,
                 // directory is to be displayed.
 
                 if( !szDirectory )
-                    GetCurrentDirectory( pi->szDirectory );
+                    GetCurrentDirectory( (PSZ) pi->szDirectory );
                 else
-                    UseCmdLineDirectory( pi->szDirectory, szDirectory );
+                    UseCmdLineDirectory( (PSZ) pi->szDirectory, szDirectory );
 
-                SetWindowTitle( hwndClient, "%s: Processing %s...",
+                SetWindowTitle( hwndClient, (PSZ) "%s: Processing %s...",
                                 PROGRAM_TITLE, pi->szDirectory );
 
                 // Start the thread that will populate the container with
@@ -253,20 +253,20 @@ HWND CreateContainer( HWND hwndClient, PSZ szDirectory, HWND hwndCnrShare,
                                     THREAD_STACKSIZE, (PVOID) ptp );
 
                 if( (INT) tid == -1 )
-                    Msg( "Cant start PopulateContainer thread!" );
+                    Msg( (PSZ) "Cant start PopulateContainer thread!" );
             }
             else
             {
                 hwndCnr = NULLHANDLE;
 
-                Msg( "Out of Memory in CreateContainer!" );
+                Msg( (PSZ) "Out of Memory in CreateContainer!" );
             }
         }
         else
             hwndCnr = NULLHANDLE;
     }
     else
-        Msg( "Couldnt create container. RC(%X)", HWNDERR( hwndClient ) );
+        Msg( (PSZ) "Couldnt create container. RC(%X)", HWNDERR( hwndClient ) );
 
     return hwndCnr;
 }
@@ -374,14 +374,14 @@ static BOOL SetContainerColumns( HWND hwndCnr )
         {
             fSuccess = FALSE;
 
-            Msg( "CM_INSERTDETAILFIELDINFO RC(%X)", HWNDERR( hwndCnr ) );
+            Msg( (PSZ) "CM_INSERTDETAILFIELDINFO RC(%X)", HWNDERR( hwndCnr ) );
         }
     }
     else
     {
         fSuccess = FALSE;
 
-        Msg( "CM_ALLOCDETAILFIELDINFO failed. RC(%X)", HWNDERR( hwndCnr ) );
+        Msg( (PSZ) "CM_ALLOCDETAILFIELDINFO failed. RC(%X)", HWNDERR( hwndCnr ) );
     }
 
     if( fSuccess )
@@ -399,7 +399,7 @@ static BOOL SetContainerColumns( HWND hwndCnr )
         {
             fSuccess = FALSE;
 
-            Msg( "SetContainerColumns CM_SETCNRINFO RC(%X)", HWNDERR(hwndCnr) );
+            Msg( (PSZ) "SetContainerColumns CM_SETCNRINFO RC(%X)", HWNDERR(hwndCnr) );
         }
     }
 
@@ -435,10 +435,10 @@ static VOID GetCurrentDirectory( PSZ pszDirectory )
     {
         pszDirectory[ 0 ] = ulCurrDrive + ('A' - 1);
 
-        (void) strcpy( pszDirectory + 1, ":\\" );
+        (void) strcpy( (char * restrict) pszDirectory + 1, ":\\" );
     }
     else
-        (void) strcpy( pszDirectory, "C:\\" );
+        (void) strcpy( (char * restrict) pszDirectory, "C:\\" );
 
     rc = DosQueryCurrentDir( 0, pszDirectory + 3, &cbDirPath );
 
@@ -448,11 +448,11 @@ static VOID GetCurrentDirectory( PSZ pszDirectory )
     // the root, the string *will* end with a backslash. So if the trailing
     // character is a backslash, remove it so we have a pure directory name.
 
-    if( pszDirectory[ strlen( pszDirectory ) - 1 ] == '\\' )
-        pszDirectory[ strlen( pszDirectory ) - 1 ] = 0;
+    if( pszDirectory[ strlen( (const char *) pszDirectory ) - 1 ] == '\\' )
+        pszDirectory[ strlen( (const char *) pszDirectory ) - 1 ] = 0;
 
     if( rc )
-        Msg( "DosQueryCurrentDir RC(%X). Using Root Directory.", rc );
+        Msg( (PSZ) "DosQueryCurrentDir RC(%X). Using Root Directory.", rc );
 
     return;
 }
@@ -473,13 +473,13 @@ static VOID GetCurrentDirectory( PSZ pszDirectory )
 /**********************************************************************/
 static VOID UseCmdLineDirectory( PSZ pszDirectoryOut, PSZ szDirectoryIn )
 {
-    (void) strcpy( pszDirectoryOut, szDirectoryIn );
+    (void) strcpy( (char * restrict) pszDirectoryOut, (const char * restrict) szDirectoryIn );
 
     // If the user ended their directory name with a backslash, take it off
     // because this program needs to have just the base directory name here.
 
-    if( pszDirectoryOut[ strlen( pszDirectoryOut ) - 1 ] == '\\' )
-        pszDirectoryOut[ strlen( pszDirectoryOut ) - 1 ] = 0;
+    if( pszDirectoryOut[ strlen( (const char * restrict) pszDirectoryOut ) - 1 ] == '\\' )
+        pszDirectoryOut[ strlen( (const char *) pszDirectoryOut ) - 1 ] = 0;
 
     return;
 }
@@ -487,4 +487,3 @@ static VOID UseCmdLineDirectory( PSZ pszDirectoryOut, PSZ szDirectoryIn )
 /*************************************************************************
  *                     E N D     O F     S O U R C E                     *
  *************************************************************************/
-

@@ -56,7 +56,7 @@
  *                                                                   *
  *********************************************************************/
 
-#pragma strings(readonly)   // used for debug version of memory mgmt routines
+// #pragma strings(readonly)   // used for debug version of memory mgmt routines
 
 /*********************************************************************/
 /*------- Include relevant sections of the OS/2 header files --------*/
@@ -103,7 +103,7 @@ static VOID RecurseSubdirs   ( HAB habThread, HWND hwndCnr, PCNRITEM pciParent,
                                PSZ szDir );
 static BOOL InsertRecords    ( HAB habThread, HWND hwndCnr, PCNRITEM pciParent,
                                PSZ szDir, PFILEFINDBUF3 pffb, ULONG cFiles,
-                               PINT piDirPosition );
+                               UINT piDirPosition );
 static BOOL FillInRecord     ( PCNRITEM pci, PSZ szDir, PFILEFINDBUF3 pffb,
                                INT iDirPosition );
 static VOID InsertSharedDir  ( HAB hab, HWND hwndCnrShare, HWND hwndCnr,
@@ -147,7 +147,7 @@ VOID PopulateContainer( PVOID pThreadParms )
     if( hab )
         hmq = WinCreateMsgQueue( hab, 0 );
     else
-        Msg( "PopulateContainer WinInitialize failed!" );
+        Msg( (PSZ) "PopulateContainer WinInitialize failed!" );
 
     if( hmq )
     {
@@ -176,13 +176,13 @@ VOID PopulateContainer( PVOID pThreadParms )
 
                 ProcessDirectory( hab,
                                   WinWindowFromID( hwndClient, CNR_DIRECTORY ),
-                                  NULL, pi->szDirectory, NULL );
+                                  NULL, (PSZ) pi->szDirectory, NULL );
         }
         else
-            Msg( "PopulateContainer cant get Inst data. RC(%X)", HABERR( hab ));
+            Msg( (PSZ )"PopulateContainer cant get Inst data. RC(%X)", HABERR( hab ));
     }
     else
-        Msg( "PopulateContainer CreateMsgQueue failed! RC(%X)", HABERR( hab ) );
+        Msg( (PSZ) "PopulateContainer CreateMsgQueue failed! RC(%X)", HABERR( hab ) );
 
     if( hmq )
         (void) WinDestroyMsgQueue( hmq );
@@ -240,18 +240,18 @@ static VOID ProcessDirectory( HAB hab, HWND hwndCnr, PCNRITEM pciParent,
         // Keep a placeholder so we can strip the trailing '\*.*' after the
         // DosFindFirst has completed.
 
-        (void) strcpy( szFileSpec, szDirBase );
+        (void) strcpy( (char * restrict) szFileSpec, (const char * restrict) szDirBase );
 
         if( szDirectory )
         {
-            (void) strcat( szFileSpec, "\\" );
+            (void) strcat( (char * restrict) szFileSpec, "\\" );
 
-            (void) strcat( szFileSpec, szDirectory );
+            (void) strcat( (char * restrict) szFileSpec, (const char * restrict) szDirectory );
         }
 
-        pchEndPath = szFileSpec + strlen( szFileSpec );
+        pchEndPath = szFileSpec + strlen( (const char *) szFileSpec );
 
-        (void) strcat( szFileSpec, "\\*.*" );
+        (void) strcat( (char * restrict) szFileSpec, "\\*.*" );
 
         // Get buffer of files up to the maximum FILES_TO_GET files. Get both
         // normal files and directories.
@@ -265,7 +265,7 @@ static VOID ProcessDirectory( HAB hab, HWND hwndCnr, PCNRITEM pciParent,
         // in the process of shutting down
 
         if( pi && !pi->fShutdown )
-            SetWindowTitle( PARENT( hwndCnr ), "%s: Processing %s...",
+            SetWindowTitle( PARENT( hwndCnr ), (unsigned char *) "%s: Processing %s...",
                             PROGRAM_TITLE, szFileSpec );
 
         while( !rc )
@@ -283,7 +283,7 @@ static VOID ProcessDirectory( HAB hab, HWND hwndCnr, PCNRITEM pciParent,
             // sorting by this variable.
 
             if( InsertRecords( hab, hwndCnr, pciParent, szFileSpec, pffb,
-                               ulMaxFiles, &iDirPosition ) )
+                               ulMaxFiles, (UINT) &iDirPosition ) )
 
                 // Get more files if there are any
 
@@ -305,7 +305,7 @@ static VOID ProcessDirectory( HAB hab, HWND hwndCnr, PCNRITEM pciParent,
             RecurseSubdirs( hab, hwndCnr, pciParent, szFileSpec );
     }
     else
-        Msg( "ProcessDirectory Out of Memory!" );
+        Msg( (PSZ) "ProcessDirectory Out of Memory!" );
 
     if( pffb )
         free( pffb );
@@ -367,7 +367,7 @@ static VOID RecurseSubdirs( HAB hab, HWND hwndCnr, PCNRITEM pciParent,
 
         if( (INT) pciNext == -1 )
         {
-            Msg( "RecurseSubdirs CM_QUERYRECORD RC(%X)", HABERR( hab ) );
+            Msg( (PSZ) "RecurseSubdirs CM_QUERYRECORD RC(%X)", HABERR( hab ) );
 
             break;
         }
@@ -383,7 +383,7 @@ static VOID RecurseSubdirs( HAB hab, HWND hwndCnr, PCNRITEM pciParent,
         if( (pciNext->attrFile & FILE_DIRECTORY) &&
              pciNext->szFileName[0] != '.' )
             ProcessDirectory( hab, hwndCnr, pciNext, szDirBase,
-                              pciNext->szFileName );
+                              (PSZ) pciNext->szFileName );
 
         usWhatRec = CMA_NEXT;
 
@@ -414,7 +414,7 @@ static VOID RecurseSubdirs( HAB hab, HWND hwndCnr, PCNRITEM pciParent,
 /**********************************************************************/
 static BOOL InsertRecords( HAB hab, HWND hwndCnr, PCNRITEM pciParent,
                            PSZ szDirectory, PFILEFINDBUF3 pffb, ULONG cFiles,
-                           PINT piDirPosition )
+                           UINT piDirPosition )
 {
     BOOL     fSuccess = TRUE;
     PBYTE    pbBuf = (PBYTE) pffb;
@@ -458,7 +458,7 @@ static BOOL InsertRecords( HAB hab, HWND hwndCnr, PCNRITEM pciParent,
             // within the directory. We will add this to the CNRITEM struct for
             // this record for later use during a sort by directory order.
 
-            if( FillInRecord( pci, szDirectory, pffbFile, ++(*piDirPosition) ) )
+            if( FillInRecord( pci, szDirectory, pffbFile, ++(piDirPosition) ) )
 
                 // Get the next container record in the linked list that the
                 // container allocated for us.
@@ -505,14 +505,14 @@ static BOOL InsertRecords( HAB hab, HWND hwndCnr, PCNRITEM pciParent,
         {
             fSuccess = FALSE;
 
-            Msg( "InsertRecords CM_INSERTRECORD RC(%X)", HABERR( hab ) );
+            Msg( (PSZ) "InsertRecords CM_INSERTRECORD RC(%X)", HABERR( hab ) );
         }
     }
     else
     {
         fSuccess = FALSE;
 
-        Msg( "InsertRecords CM_ALLOCRECORD RC(%X)", HABERR( hab ) );
+        Msg( (PSZ) "InsertRecords CM_ALLOCRECORD RC(%X)", HABERR( hab ) );
     }
 
     return fSuccess;
@@ -550,7 +550,7 @@ static BOOL FillInRecord( PCNRITEM pci, PSZ szDirectory, PFILEFINDBUF3 pffb,
 
     (void) memset( szFullFileName, 0, sizeof( szFullFileName ) );
 
-    (void) strcpy( szFullFileName, szDirectory );
+    (void) strcpy( szFullFileName, (const char * restrict) szDirectory );
 
     szFullFileName[ strlen( szFullFileName ) ] = '\\';
 
@@ -561,7 +561,7 @@ static BOOL FillInRecord( PCNRITEM pci, PSZ szDirectory, PFILEFINDBUF3 pffb,
     // a shared copy by using FALSE as the last parameter. If you do a
     // WinFreeFileIcon on this hptr you will get a PMERR_INVALID_PROCESS_ID.
 
-    hptr = WinLoadFileIcon( szFullFileName, FALSE );
+    hptr = WinLoadFileIcon( (PCSZ) szFullFileName, FALSE );
 
     // WinLoadFileIcon doesn't allow for any error investigation
     // (WinGetLastError always returns zero). It seems to fail when a file is
@@ -591,7 +591,7 @@ static BOOL FillInRecord( PCNRITEM pci, PSZ szDirectory, PFILEFINDBUF3 pffb,
     // Fill in all fields of the MINIRECORDCORE structure. Note that the .cb
     // field of the MINIRECORDCORE struct was filled in by CM_ALLOCRECORD.
 
-    pci->rc.pszIcon     = pci->szFileName;
+    pci->rc.pszIcon     = (PSZ) pci->szFileName;
     pci->rc.hptrIcon    = hptr;
 
     return fSuccess;
@@ -621,12 +621,12 @@ static VOID InsertSharedDir( HAB hab, HWND hwndCnrShare, HWND hwndCnr,
 
     if( !pi )
     {
-        Msg( "InsertSharedDir cant get Inst Data RC(%X)", HABERR( hab ) );
+        Msg( (PSZ) "InsertSharedDir cant get Inst Data RC(%X)", HABERR( hab ) );
 
         return;
     }
 
-    SetWindowTitle( PARENT( hwndCnr ), "%s: Processing %s\\%s...",
+    SetWindowTitle( PARENT( hwndCnr ), (PSZ) "%s: Processing %s\\%s...",
                     PROGRAM_TITLE, pi->szDirectory,
                     pciParent ? pciParent->szFileName : "" );
 
@@ -645,7 +645,7 @@ static VOID InsertSharedDir( HAB hab, HWND hwndCnrShare, HWND hwndCnr,
 
         if( !pciParent )
             if( !WinSendMsg( hwndCnr, CM_INVALIDATERECORD, NULL, NULL ) )
-                Msg( "InsertSharedDir CM_INVALIDATERECORD RC(%X)", HABERR(hab));
+                Msg( (PSZ) "InsertSharedDir CM_INVALIDATERECORD RC(%X)", HABERR(hab));
 
         // Give up our timeslice so we don't monopolize the cpu
 
@@ -702,7 +702,7 @@ static VOID RecurseSharedDirs( HAB hab, HWND hwndCnrShare, HWND hwndCnr,
 
         if( (INT) pciNext == -1 )
         {
-            Msg( "RecurseSharedDirs CM_QUERYRECORD RC(%X)", HABERR( hab ) );
+            Msg( (PSZ) "RecurseSharedDirs CM_QUERYRECORD RC(%X)", HABERR( hab ) );
 
             break;
         }
@@ -783,7 +783,7 @@ static BOOL InsertSharedRecs( HAB hab, HWND hwndCnrShare, HWND hwndCnr,
 
         if( (INT) pciNext == -1 )
         {
-            Msg( "InsertSharedRecs CM_QUERYRECORD RC(%X)", HABERR( hab ) );
+            Msg( (PSZ) "InsertSharedRecs CM_QUERYRECORD RC(%X)", HABERR( hab ) );
 
             fSuccess = FALSE;
 
@@ -796,7 +796,7 @@ static BOOL InsertSharedRecs( HAB hab, HWND hwndCnrShare, HWND hwndCnr,
         if( !WinSendMsg( hwndCnr, CM_INSERTRECORD, MPFROMP( pciNext ),
                          MPFROMP( &ri ) ) )
         {
-            Msg( "InsertSharedRecs CM_INSERTRECORD for %s RC(%X)",
+            Msg( (PSZ) "InsertSharedRecs CM_INSERTRECORD for %s RC(%X)",
                  pciNext ? pciNext->szFileName : "", HABERR( hab ) );
 
             fSuccess = FALSE;
@@ -815,4 +815,3 @@ static BOOL InsertSharedRecs( HAB hab, HWND hwndCnrShare, HWND hwndCnr,
 /*************************************************************************
  *                     E N D     O F     S O U R C E                     *
  *************************************************************************/
-
