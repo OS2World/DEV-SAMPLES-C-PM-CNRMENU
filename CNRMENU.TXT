@@ -1,7 +1,7 @@
 Name: 		CNRMENU
 Descripcion: 	Container controls C PM Sample.
-Date: 		2023-05-25
-Version:	1.01
+Date: 		2023-07-27
+Version:	1.02
 ----------------------------  
 
 
@@ -140,6 +140,9 @@ The compile produce will run by just executing make on the directory, but a comp
 
 HISTORY
 ---------- 
+- 1.02 - 2023-07-27
+Fixed GCC compiler warnings.
+
 - 1.01 - 2023-05-25
 Changed version to compile on gcc and to run on ArcaOS 5.0.7.
 

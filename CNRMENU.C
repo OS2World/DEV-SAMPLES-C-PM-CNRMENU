@@ -1,7 +1,7 @@
 /*********************************************************************
  *                                                                   *
- * MODULE NAME :  cnrmenu.c              AUTHOR:  Rick Fishman       *
- * DATE WRITTEN:  10-24-92                                           *
+ * MODULE NAME :  cnrmenu.c             			     *
+ * 			                                             *
  *                                                                   *
  * HOW TO RUN THIS PROGRAM:                                          *
  *                                                                   *
@@ -82,11 +82,6 @@
  *  01-01-93   Initialize fTrue for all while( fTrue ) loops.        *
  *  03-27-93   Changed PSZ szArg to char *szArg  - compiler bug.     *
  *                                                                   *
- *  Rick Fishman                                                     *
- *  Code Blazers, Inc.                                               *
- *  4113 Apricot                                                     *
- *  Irvine, CA. 92720                                                *
- *  CIS ID: 72251,750                                                *
  *                                                                   *
  *********************************************************************/
 

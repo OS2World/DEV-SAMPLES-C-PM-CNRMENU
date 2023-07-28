@@ -1,7 +1,6 @@
 /*********************************************************************
  *                                                                   *
- * MODULE NAME :  edit.c                 AUTHOR:  Rick Fishman       *
- * DATE WRITTEN:  10-24-92                                           *
+ * MODULE NAME :  edit.c                                             *
  *                                                                   *
  * DESCRIPTION:                                                      *
  *                                                                   *
@@ -21,11 +20,6 @@
  *             MLS_DISABLEUNDO flag instead of WinQueryWindowULong/  *
  *             WinSetWindowULong per John Webb's idea.               *
  *                                                                   *
- *  Rick Fishman                                                     *
- *  Code Blazers, Inc.                                               *
- *  4113 Apricot                                                     *
- *  Irvine, CA. 92720                                                *
- *  CIS ID: 72251,750                                                *
  *                                                                   *
  *********************************************************************/
 

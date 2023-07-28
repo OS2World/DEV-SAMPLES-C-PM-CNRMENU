@@ -1,7 +1,7 @@
 /*********************************************************************
  *                                                                   *
- * MODULE NAME :  common.c               AUTHOR:  Rick Fishman       *
- * DATE WRITTEN:  10-24-92                                           *
+ * MODULE NAME :  common.c               			     *
+ * 				                                     *
  *                                                                   *
  * DESCRIPTION:                                                      *
  *                                                                   *
@@ -20,11 +20,6 @@
  *             Added sending Msg to stderr besides the msgbox.       *
  *             Added FullyQualify function.                          *
  *                                                                   *
- *  Rick Fishman                                                     *
- *  Code Blazers, Inc.                                               *
- *  4113 Apricot                                                     *
- *  Irvine, CA. 92720                                                *
- *  CIS ID: 72251,750                                                *
  *                                                                   *
  *********************************************************************/
 

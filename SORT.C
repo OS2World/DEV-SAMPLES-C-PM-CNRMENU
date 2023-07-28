@@ -1,7 +1,6 @@
 /*********************************************************************
  *                                                                   *
- * MODULE NAME :  sort.c                 AUTHOR:  Rick Fishman       *
- * DATE WRITTEN:  11-01-92                                           *
+ * MODULE NAME :  sort.c                                             *
  *                                                                   *
  * DESCRIPTION:                                                      *
  *                                                                   *
@@ -16,11 +15,6 @@
  *                                                                   *
  *  11-01-92 - Program coded.                                        *
  *                                                                   *
- *  Rick Fishman                                                     *
- *  Code Blazers, Inc.                                               *
- *  4113 Apricot                                                     *
- *  Irvine, CA. 92720                                                *
- *  CIS ID: 72251,750                                                *
  *                                                                   *
  *********************************************************************/
 
@@ -184,7 +178,7 @@ static SHORT APIENTRY DateCompare( PRECORDCORE prc1, PRECORDCORE prc2, PVOID pv)
 {
     CDATE date1 = ((PCNRITEM) prc1)->date;
     CDATE date2 = ((PCNRITEM) prc2)->date;
-    CHAR  szDate1[ 9 ], szDate2[ 9 ];
+    CHAR  szDate1[ 12 ], szDate2[ 12 ];
     INT   iResult;
 
     pv = pv;    // to keep the compiler happy

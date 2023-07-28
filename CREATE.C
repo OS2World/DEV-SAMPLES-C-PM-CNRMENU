@@ -1,7 +1,7 @@
 /*********************************************************************
  *                                                                   *
- * MODULE NAME :  create.c               AUTHOR:  Rick Fishman       *
- * DATE WRITTEN:  10-24-92                                           *
+ * MODULE NAME :  create.c               			     *
+ * 			                                             *
  *                                                                   *
  * DESCRIPTION:                                                      *
  *                                                                   *
@@ -40,11 +40,6 @@
  *               rather than just the directory name.                *
  *             Add CCS_EXTENDSEL to container styles.                *
  *                                                                   *
- *  Rick Fishman                                                     *
- *  Code Blazers, Inc.                                               *
- *  4113 Apricot                                                     *
- *  Irvine, CA. 92720                                                *
- *  CIS ID: 72251,750                                                *
  *                                                                   *
  *********************************************************************/
 

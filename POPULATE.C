@@ -1,7 +1,6 @@
 /*********************************************************************
  *                                                                   *
- * MODULE NAME :  populate.c             AUTHOR:  Rick Fishman       *
- * DATE WRITTEN:  10-24-92                                           *
+ * MODULE NAME :  populate.c                                         *
  *                                                                   *
  * DESCRIPTION:                                                      *
  *                                                                   *
@@ -48,11 +47,6 @@
  *               parameter to that function. Pass it thru from the   *
  *               ProcessDirectory function on down.                  *
  *                                                                   *
- *  Rick Fishman                                                     *
- *  Code Blazers, Inc.                                               *
- *  4113 Apricot                                                     *
- *  Irvine, CA. 92720                                                *
- *  CIS ID: 72251,750                                                *
  *                                                                   *
  *********************************************************************/
 

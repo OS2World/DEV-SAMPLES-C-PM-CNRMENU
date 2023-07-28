@@ -19,7 +19,7 @@ common.obj : common.c
 create.obj : create.c 
 	gcc -Wall -Zomf -c -O2 create.c -o create.obj
 
-ctxtmenu.obj : ctxtmenu.c 
+ctxtmenu.obj : ctxtmenu.c cnrmenu.h 
 	gcc -Wall -Zomf -c -O2 ctxtmenu.c -o ctxtmenu.obj
 
 edit.obj : edit.c 
@@ -35,4 +35,4 @@ cnrmenu.res : cnrmenu.rc
 	wrc -r cnrmenu.rc
 
 clean :
-	rm -rf *exe *res *obj
+	rm -rf *exe *res *obj *dll *map

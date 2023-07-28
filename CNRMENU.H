@@ -1,6 +1,6 @@
 /*********************************************************************
  *                                                                   *
- * MODULE NAME :  cnrmenu.h              AUTHOR:  Rick Fishman       *
+ * MODULE NAME :  cnrmenu.h              			     *
  * DATE WRITTEN:  10-24-92                                           *
  *                                                                   *
  * DESCRIPTION:                                                      *
@@ -33,11 +33,6 @@
  *               while( fTrue ) statements. The new compiler does    *
  *               not allow while( TRUE ) or for( ; ; ) statements.   *
  *                                                                   *
- *  Rick Fishman                                                     *
- *  Code Blazers, Inc.                                               *
- *  4113 Apricot                                                     *
- *  Irvine, CA. 92720                                                *
- *  CIS ID: 72251,750                                                *
  *                                                                   *
  *********************************************************************/
 
