@@ -1,0 +1,52 @@
+# makefile-ow
+# Build CNRMENU.EXE with OpenWatcom 2.0 on OS/2
+#
+# Usage:
+#   compile-ow.cmd          normal build
+#   compile-ow.cmd clean    remove output files
+#
+# Tools required:
+#   wcc386 - OpenWatcom C/C++ compiler
+#   wlink  - OpenWatcom linker
+#   wrc    - Watcom Resource Compiler
+
+SRC = src
+OUT = bin-ow
+
+CFLAGS = -I=$(SRC) -bt=os2 -zq -Ot -w3
+
+.BEFORE
+	if not exist $(OUT) mkdir $(OUT)
+
+all: $(OUT)\CNRMENU.EXE .SYMBOLIC
+
+$(OUT)\CNRMENU.EXE: $(OUT)\cnrmenu.obj $(OUT)\common.obj $(OUT)\create.obj $(OUT)\ctxtmenu.obj $(OUT)\edit.obj $(OUT)\populate.obj $(OUT)\sort.obj $(OUT)\cnrmenu.res $(SRC)\cnrmenu-ow.lnk
+	wlink @$(SRC)\cnrmenu-ow.lnk
+	wrc $(OUT)\cnrmenu.res $(OUT)\CNRMENU.EXE
+
+$(OUT)\cnrmenu.res: $(SRC)\CNRMENU.RC $(SRC)\cnrmenu.h $(SRC)\cnrmenu.ico
+	wrc -r -bt=os2 -q -I=$(SRC) $(SRC)\CNRMENU.RC -fo=$(OUT)\cnrmenu.res
+
+$(OUT)\cnrmenu.obj: $(SRC)\CNRMENU.C $(SRC)\CNRMENU.H
+	wcc386 $(SRC)\CNRMENU.C $(CFLAGS) -fo=$@
+
+$(OUT)\common.obj: $(SRC)\COMMON.C $(SRC)\CNRMENU.H
+	wcc386 $(SRC)\COMMON.C $(CFLAGS) -fo=$@
+
+$(OUT)\create.obj: $(SRC)\CREATE.C $(SRC)\CNRMENU.H
+	wcc386 $(SRC)\CREATE.C $(CFLAGS) -fo=$@
+
+$(OUT)\ctxtmenu.obj: $(SRC)\CTXTMENU.C $(SRC)\CNRMENU.H
+	wcc386 $(SRC)\CTXTMENU.C $(CFLAGS) -fo=$@
+
+$(OUT)\edit.obj: $(SRC)\EDIT.C $(SRC)\CNRMENU.H
+	wcc386 $(SRC)\EDIT.C $(CFLAGS) -fo=$@
+
+$(OUT)\populate.obj: $(SRC)\POPULATE.C $(SRC)\CNRMENU.H
+	wcc386 $(SRC)\POPULATE.C $(CFLAGS) -fo=$@
+
+$(OUT)\sort.obj: $(SRC)\SORT.C $(SRC)\CNRMENU.H
+	wcc386 $(SRC)\SORT.C $(CFLAGS) -fo=$@
+
+clean: .SYMBOLIC
+	rm -f $(OUT)\*.exe $(OUT)\*.obj $(OUT)\*.res $(OUT)\*.map

@@ -1,7 +1,7 @@
 /*********************************************************************
  *                                                                   *
- * MODULE NAME :  common.c               			     *
- * 				                                     *
+ * MODULE NAME :  common.c                                           *
+ *                                                                   *
  *                                                                   *
  * DESCRIPTION:                                                      *
  *                                                                   *
@@ -12,13 +12,14 @@
  *                                                                   *
  *  VOID SetWindowTitle( HWND hwndClient, PSZ szFormat, ... );       *
  *  VOID Msg           ( PSZ szFormat, ... );                        *
- *  VOID FullyQualify  ( PSZ szBuf, HWND hwndCnr, PCNRITEM pci );    *
+ *  VOID FullyQualify  ( PSZ szBuf, HWND hwndCnr, PCNRITEM pci );   *
  *                                                                   *
  * HISTORY:                                                          *
  *                                                                   *
  *  10-24-92 - Source copied from CNRBASE.EXE sample.                *
  *             Added sending Msg to stderr besides the msgbox.       *
  *             Added FullyQualify function.                          *
+ *  2026-07-28 Moved to src/. No code changes.                       *
  *                                                                   *
  *                                                                   *
  *********************************************************************/
@@ -70,7 +71,8 @@
 /*         a message in printf format with its parms                  */
 /*                                                                    */
 /*  1. Format the message using vsprintf.                             */
-/*  2. Set the text into the titlebar.                                */
+/*  2. Set the text into the titlebar via WinSetWindowText on the    */
+/*     parent (frame) window.                                         */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -93,7 +95,7 @@ VOID SetWindowTitle( HWND hwndClient, PSZ szFormat,... )
 
     va_start( argptr, szFormat );
 
-    vsprintf( (char * restrict) szMsg, (const char * restrict) szFormat, argptr );
+    vsprintf( (char *)szMsg, (const char *)szFormat, argptr );
 
     va_end( argptr );
 
@@ -114,8 +116,9 @@ VOID SetWindowTitle( HWND hwndClient, PSZ szFormat,... )
 /*  INPUT: a message in printf format with its parms                  */
 /*                                                                    */
 /*  1. Format the message using vsprintf.                             */
-/*  2. Sound a warning sound.                                         */
-/*  3. Display the message in a message box.                          */
+/*  2. Sound a warning alarm (WA_WARNING).                            */
+/*  3. Write the message to stderr.                                   */
+/*  4. Display the message in a WinMessageBox dialog.                 */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -138,7 +141,7 @@ VOID Msg( PSZ szFormat,... )
 
     va_start( argptr, szFormat );
 
-    vsprintf( (char * restrict) szMsg, (const char * restrict) szFormat, argptr );
+    vsprintf( (char *)szMsg, (const char *)szFormat, argptr );
 
     va_end( argptr );
 
@@ -161,13 +164,16 @@ VOID Msg( PSZ szFormat,... )
 /*                                                                    */
 /*  RECURSIVELY BUILD A FULLY QUALIFIED DIRECTORY NAME.               */
 /*                                                                    */
-/*  INPUT: directory name buffer,                                     */
+/*  INPUT: directory name buffer (receives the built path),           */
 /*         container window handle,                                   */
 /*         pointer to current CNRITEM container record (subdirectory) */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Query the parent record of pci from the container.            */
+/*  2. If pci has a parent, recurse into FullyQualify for the parent  */
+/*     first (builds the path from the root down).                    */
+/*  3. Append a backslash and this record's file name to szDirectory. */
 /*                                                                    */
-/*  OUTPUT: nothing                                                   */
+/*  OUTPUT: nothing (szDirectory is modified in place)               */
 /*                                                                    */
 /*--------------------------------------------------------------------*/
 /**********************************************************************/
@@ -183,9 +189,9 @@ VOID FullyQualify( PSZ szDirectory, HWND hwndCnr, PCNRITEM pci )
         if( pciParent )
             FullyQualify( szDirectory, hwndCnr, pciParent );
 
-        (void) strcat( (char * restrict) szDirectory, "\\" );
+        (void) strcat( (char *)szDirectory, "\\" );
 
-        (void) strcat( (char * restrict) szDirectory, pci->szFileName );
+        (void) strcat( (char *)szDirectory, pci->szFileName );
     }
 
     return;

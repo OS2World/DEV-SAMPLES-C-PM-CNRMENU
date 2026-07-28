@@ -1,7 +1,7 @@
 /*********************************************************************
  *                                                                   *
- * MODULE NAME :  cnrmenu.rc             		             *
- * 			                                             *
+ * MODULE NAME :  cnrmenu.rc                                         *
+ *                                                                   *
  *                                                                   *
  * DESCRIPTION:                                                      *
  *                                                                   *
@@ -17,6 +17,7 @@
  *             Added CreateNewWindow item.                           *
  *             Added Sort, Other Window submenus.                    *
  *             Added Arrange item.                                   *
+ *  2026-07-28 Moved to src/. No changes.                            *
  *                                                                   *
  *                                                                   *
  *********************************************************************/
@@ -55,4 +56,3 @@ MENU ID_CONTEXT_MENU
 /*********************************************************************
  *                  E N D     O F     S O U R C E                    *
  *********************************************************************/
-

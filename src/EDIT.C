@@ -19,6 +19,7 @@
  *  11-21-92 - Use WinSetWindowBits for taking off the               *
  *             MLS_DISABLEUNDO flag instead of WinQueryWindowULong/  *
  *             WinSetWindowULong per John Webb's idea.               *
+ *  2026-07-28 Moved to src/. No code changes.                       *
  *                                                                   *
  *                                                                   *
  *********************************************************************/
@@ -77,7 +78,9 @@ static VOID RefreshAllContainers( HWND hwndCnr, PCNRITEM pciChanged );
 /*  INPUT: client window handle,                                      */
 /*         pointer to the CNREDITDATA structure                       */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. If we are editing the file name field (in Details view or any  */
+/*     other view), clear MLS_DISABLEUNDO and set the text limit on  */
+/*     the MLE to the maximum allowed file name length for the drive. */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -134,7 +137,11 @@ VOID EditBegin( HWND hwndClient, PCNREDITDATA pced )
 /*  INPUT: client window handle,                                      */
 /*         pointer to the CNREDITDATA structure                       */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Query the new name from the MLE.                               */
+/*  2. Call RenameFile to do the actual DosMove rename.               */
+/*  3. If successful, update pci->szFileName and call                 */
+/*     RefreshAllContainers so every container that shares this       */
+/*     record repaints it with the new name.                          */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -189,7 +196,9 @@ VOID EditEnd( HWND hwndClient, PCNREDITDATA pced )
 /*                                                                    */
 /*  INPUT: drive letter                                               */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Call DosQueryFSAttach for the drive to get the file system     */
+/*     type string (e.g. "FAT", "HPFS", "JFS").                      */
+/*  2. Return 12 for FAT (8.3 names), CCHMAXPATH for anything else.  */
 /*                                                                    */
 /*  OUTPUT: max filename size                                         */
 /*                                                                    */
@@ -242,7 +251,9 @@ static ULONG GetMaxNameSize( CHAR chDrive )
 /*         pointer to CNRITEM record of the current file,             */
 /*         new file name                                              */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Build the current fully qualified path via FullyQualify.       */
+/*  2. Build the target path by replacing the filename component.     */
+/*  3. Call DosMove to perform the rename.                            */
 /*                                                                    */
 /*  OUTPUT: TRUE or FALSE if successful or not                        */
 /*                                                                    */
@@ -285,7 +296,7 @@ static BOOL RenameFile( HWND hwndCnr, PCNRITEM pci, PSZ szNewName )
     else
         pi->achWorkBuf[ 0 ] = 0;
 
-    (void) strcat( pi->achWorkBuf, (const char * restrict) szNewName );
+    (void) strcat( pi->achWorkBuf, (const char *)szNewName );
 
     // Do the rename. Alert the user if the rename was not successful. It
     // won't be successful if, for instance, the user tries to change the name
@@ -313,7 +324,10 @@ static BOOL RenameFile( HWND hwndCnr, PCNRITEM pci, PSZ szNewName )
 /*  INPUT: container window handle that is being direct-edited,       */
 /*         pointer to CNRITEM record of the renamed file              */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Enumerate all desktop windows.                                 */
+/*  2. For each one with class DIRECTORY_WINCLASS, send               */
+/*     CM_INVALIDATERECORD with CMA_TEXTCHANGED so its display of     */
+/*     this shared record is updated.                                 */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */

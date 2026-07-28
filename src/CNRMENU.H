@@ -1,11 +1,17 @@
 /*********************************************************************
  *                                                                   *
- * MODULE NAME :  cnrmenu.h              			     *
+ * MODULE NAME :  cnrmenu.h                                          *
  * DATE WRITTEN:  10-24-92                                           *
  *                                                                   *
  * DESCRIPTION:                                                      *
  *                                                                   *
- *  Common definitions and function prototypes for CNRMENU.EXE       *
+ *  Common definitions, structures, and function prototypes for      *
+ *  all modules of CNRMENU.EXE.                                      *
+ *                                                                   *
+ *  Globals are declared with the DATADEF macro: cnrmenu.c defines   *
+ *  GLOBALS_DEFINED before including this header, causing DATADEF to *
+ *  expand to nothing (allocating storage). All other modules see    *
+ *  DATADEF as 'extern' (referencing without allocating).            *
  *                                                                   *
  * HISTORY:                                                          *
  *                                                                   *
@@ -32,6 +38,7 @@
  *             Added fTrue to satisfy new C Set/2++ compiler in      *
  *               while( fTrue ) statements. The new compiler does    *
  *               not allow while( TRUE ) or for( ; ; ) statements.   *
+ *  2026-07-28 No structural changes. Source moved to src/.          *
  *                                                                   *
  *                                                                   *
  *********************************************************************/
@@ -44,9 +51,9 @@
 
 #define ID_RESOURCES         1         // Id of frame wnd resources in .RC file
 
-#define CNR_DIRECTORY        30        // The start of our show
+#define CNR_DIRECTORY        30        // Window id for the container control
 
-#define ID_CONTEXT_MENU      1000      // Id of the context menu
+#define ID_CONTEXT_MENU      1000      // Id of the context menu resource
 #define IDM_VIEW_SUBMENU     1100      // View Submenu id
 #define IDM_VIEW_ICON        1101      // View Submenu item ids
 #define IDM_VIEW_NAME        1102
@@ -63,13 +70,15 @@
 #define IDM_CREATE_NEWWIN    1400      // CreateNewWindow menu item
 #define IDM_ARRANGE          1500      // Arrange menu item
 
-#define UM_CONTAINER_FILLED  WM_USER   // Posted by Fill thread to primary thrd
+#define UM_CONTAINER_FILLED  WM_USER   // Posted by fill thread to primary thread
 
 #define DEBUG_FILENAME       "cnrmenu.dbg"
 
 #define DIRECTORY_WINCLASS   "CnrMenuSample"
 
 #define PROGRAM_TITLE        "CNRMENU"
+
+// Convenience macros for PM error/instance-data access
 
 #define HABERR( hab )        (ERRORIDERROR( WinGetLastError( hab ) ))
 
@@ -96,51 +105,53 @@
 
 typedef struct _CNRITEM               // CONTAINER RECORD STRUCTURE
 {
-  MINIRECORDCORE rc;                  // Base information
-  CDATE          date;                // Date of file
-  CTIME          time;                // Time of file
-  ULONG          cbFile;              // File size
-  ULONG          attrFile;            // Attributes of this file
-  INT            iDirPosition;        // Relative position in directory
-  BOOL           fSelected;           // Does this record have source emphasis
-  CHAR           szFileName[CCHMAXPATH + 1]; // File name
+  MINIRECORDCORE rc;                  // Base information (icon, text pointer)
+  CDATE          date;                // Date of last write
+  CTIME          time;                // Time of last write
+  ULONG          cbFile;              // File size in bytes
+  ULONG          attrFile;            // DOS file attributes (FILE_DIRECTORY etc.)
+  INT            iDirPosition;        // Relative position within directory
+  BOOL           fSelected;           // TRUE while this record has source emphasis
+  CHAR           szFileName[CCHMAXPATH + 1]; // File name (rc.pszIcon points here)
 
 } CNRITEM, *PCNRITEM;
+
+// Number of extra bytes per record beyond the MINIRECORDCORE base structure
 
 #define EXTRA_RECORD_BYTES (sizeof( CNRITEM ) - sizeof( MINIRECORDCORE ))
 
 
-typedef struct _INSTANCE              // CONTAINER'S CLIENT WINDOW INSTANCE DATA
+typedef struct _INSTANCE              // PER-WINDOW INSTANCE DATA
 {
     BOOL fShutdown;                     // Main thread wants to shut down
     BOOL fContainerFilled;              // Fill thread has completed
-    PCNRITEM pciSelected;               // Item selected under context menu
-    BOOL fDirSelected;                  // One of the selected recs is a dir
+    PCNRITEM pciSelected;               // Record under the mouse when ctx menu opened
+    BOOL fDirSelected;                  // At least one selected record is a directory
 
-    // Used to keep track of frame windows associated with OtherWindow menuitems
+    // Frame handles for each "Other Window" submenu entry (one per possible item)
     HWND hwndFrame[ IDM_OTHERWIN_LASTITEM - IDM_OTHERWIN_ITEM1 + 1 ];
 
-    CHAR szCnrTitle[ CCHMAXPATH + 20 ]; // Container title
-    CHAR szDirectory[ CCHMAXPATH + 1 ]; // Directory being displayed
-    CHAR achWorkBuf[ CCHMAXPATH + 1 ];  // Instance work buffer
+    CHAR szCnrTitle[ CCHMAXPATH + 20 ]; // Container title text
+    CHAR szDirectory[ CCHMAXPATH + 1 ]; // Directory currently displayed
+    CHAR achWorkBuf[ CCHMAXPATH + 1 ];  // Scratch buffer for path operations
 
 } INSTANCE, *PINSTANCE;
 
 
-typedef struct _THREADPARMS          // PARAMETERS TO PASS TO SECONDARY THREAD
+typedef struct _THREADPARMS          // PARAMETERS PASSED TO THE FILL THREAD
 {
     HWND hwndClient;                 // Client window handle
-    HWND hwndCnrShare;               // Container hwnd whose recs will be shared
-    PCNRITEM pciParent;              // Ptr to parent CNRITEM if using shr recs
+    HWND hwndCnrShare;               // Container whose records will be shared
+    PCNRITEM pciParent;              // Starting parent record when sharing records
 
 } THREADPARMS, *PTHREADPARMS;
 
 
-typedef struct _WINCREATE            // PARAMETERS TO PASS TO WINDOW ON CREATION
+typedef struct _WINCREATE            // PARAMETERS PASSED TO CLIENT ON WM_CREATE
 {
-    PSZ szDirectory;                 // Pointer to directory name
-    HWND hwndCnrShare;               // Container hwnd whose recs will be shared
-    PCNRITEM pciParent;              // Ptr to parent CNRITEM if using shr recs
+    PSZ szDirectory;                 // Pointer to directory name to display
+    HWND hwndCnrShare;               // Container whose records will be shared
+    PCNRITEM pciParent;              // Starting parent record when sharing records
 
 } WINCREATE, *PWINCREATE;
 
@@ -184,14 +195,17 @@ VOID SortContainer( HWND hwndClient, ULONG ulSortType );
 /*------------------------ GLOBAL VARIABLES --------------------------*/
 /**********************************************************************/
 
+// cnrmenu.c defines GLOBALS_DEFINED, making DATADEF empty (allocates storage).
+// All other modules see DATADEF as 'extern' (references existing storage).
+
 #ifdef GLOBALS_DEFINED
 #  define DATADEF
 #else
 #  define DATADEF extern
 #endif
 
-DATADEF INT iWinCount;           // Number of directory windows created
-DATADEF BOOL fTrue;              // Used for while( fTrue ) to satisfy CSet2++
+DATADEF INT iWinCount;           // Number of directory windows currently open
+DATADEF BOOL fTrue;              // Sentinel for while(fTrue) loops (always TRUE)
 
 /***********************************************************************
  *                   E N D     O F     S O U R C E                     *

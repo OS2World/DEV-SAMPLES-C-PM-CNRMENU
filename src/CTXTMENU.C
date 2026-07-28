@@ -20,6 +20,9 @@
  *  11-21-92 - Changed the WinQueryWindowULong/WinSetWindowULong     *
  *               method of setting the MS_CONDITIONALCASCADE bit     *
  *               to WinSetWindowBits per John Webb's idea.           *
+ *  2026-07-28 Moved to src/. Fixed MRESULT pointer-to-integer casts *
+ *               in AddOtherWinItem and GetDefaultId via SHORT1FROMMR *
+ *               and LONGFROMMR macros to silence GCC -Wall warnings. *
  *                                                                   *
  *                                                                   *
  *********************************************************************/
@@ -89,7 +92,12 @@ static USHORT GetDefaultId        ( HWND hwndClient, USHORT idSubMenu );
 /*  INPUT: client window handle,                                      */
 /*         pointer to CNRITEM that mouse pointer is over              */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Load the context menu resource.                               */
+/*  2. Save pciSelected in instance data for later WM_COMMAND use.  */
+/*  3. Initialize selection flags and turn on source emphasis.        */
+/*  4. Query and convert mouse position to client coordinates.        */
+/*  5. Tailor the menu (add/remove items based on context).          */
+/*  6. Display the popup menu via WinPopupMenu.                       */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -177,10 +185,18 @@ VOID CtxtmenuCreate( HWND hwndClient, PCNRITEM pciSelected )
 /*                                                                    */
 /*  INPUT: client window handle,                                      */
 /*         command id,                                                */
-/*         command source                                             */
+/*         command source (CMDSRC_MENU, CMDSRC_OTHER, etc.)           */
 /*                                                                    */
-/*  1.                                                                */
-/*                                                                    */
+/*  1. Dispatch based on command ID to the appropriate handler:      */
+/*     View items   - CtxtmenuSetView                                */
+/*     Sort items   - SortContainer (sort.c)                         */
+/*     NewWindow    - NewWindows (only iterates all selected if from */
+/*                    the menu, not from a CN_ENTER double-click)    */
+/*     Arrange      - CM_ARRANGE                                     */
+/*     Submenus     - simulate the default item when the cascade     */
+/*                    button is clicked without selecting a sub-item */
+/*     Other Window - set focus to the chosen window                 */
+/*                                                                   */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
 /*--------------------------------------------------------------------*/
@@ -288,9 +304,13 @@ VOID CtxtmenuCommand( HWND hwndClient, ULONG idCommand, ULONG ulCmdSrc )
 /*  SET THE TYPE OF VIEW FOR THE CONTAINER                            */
 /*                                                                    */
 /*  INPUT: client window handle,                                      */
-/*         view type to set to                                        */
+/*         view type to set (CV_TREE|CV_ICON, CV_NAME|CV_FLOW, etc.) */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Build a CNRINFO with flWindowAttr = view | CA_CONTAINERTITLE  */
+/*     | CA_TITLESEPARATOR | CA_TITLEREADONLY.                        */
+/*  2. Set szCnrTitle based on the view type.                         */
+/*  3. Send CM_SETCNRINFO to apply the new view.                      */
+/*  4. For CV_ICON view, also send CM_ARRANGE to position icons.      */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -300,6 +320,7 @@ VOID CtxtmenuSetView( HWND hwndClient, ULONG ulViewType )
 {
     PINSTANCE pi = INSTDATA( hwndClient );
     CNRINFO   cnri;
+    CHAR      szDir[ CCHMAXPATH + 1 ];
 
     if( !pi )
     {
@@ -366,7 +387,8 @@ VOID CtxtmenuSetView( HWND hwndClient, ULONG ulViewType )
             break;
     }
 
-    (void) strcat( pi->szCnrTitle, pi->szDirectory );
+    (void) memcpy( szDir, pi->szDirectory, sizeof( szDir ) );
+    (void) strcat( pi->szCnrTitle, szDir );
 
     cnri.pszCnrTitle = (PSZ) pi->szCnrTitle;
 
@@ -406,7 +428,8 @@ VOID CtxtmenuSetView( HWND hwndClient, ULONG ulViewType )
 /*                                                                    */
 /*  INPUT: client window handle                                       */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Turn off source emphasis for all records that had it.         */
+/*  2. Reset fDirSelected in instance data.                           */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -439,7 +462,8 @@ VOID CtxtmenuEnd( HWND hwndClient )
 /*                                                                    */
 /*  INPUT: container window handle                                    */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Enumerate all records with CM_QUERYRECORD/CMA_FIRST/CMA_NEXT. */
+/*  2. Set pci->fSelected = FALSE for each record.                    */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -481,7 +505,10 @@ static VOID TurnOffSelFlags( HWND hwndCnr )
 /*  INPUT: client window handle,                                      */
 /*         flag indicating if all selected records are to be looked at*/
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Always create a window for pciSelected (the record under the  */
+/*     mouse when the menu was invoked).                              */
+/*  2. If fAllSelected, also create windows for every other record   */
+/*     that has its fSelected flag set (source emphasis).             */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -541,7 +568,13 @@ static VOID NewWindows( HWND hwndClient, BOOL fAllSelected )
 /*                                                                    */
 /*  INPUT: client window handle                                       */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. If no record is under the mouse (pciSelected == NULL), set    */
+/*     source emphasis on the container itself.                       */
+/*  2. Otherwise count the selected records. If the record under the  */
+/*     mouse is among them, set source emphasis on all selected recs. */
+/*     If it is not, set source emphasis only on that one record.     */
+/*  3. Set pci->fSelected = TRUE for each record that gets emphasis.  */
+/*  4. Set pi->fDirSelected if any emphasized record is a directory.  */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -654,7 +687,10 @@ static VOID TurnOnSourceEmphasis( HWND hwndClient )
 /*                                                                    */
 /*  INPUT: client window handle                                       */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. If pciSelected is NULL, the container itself had source        */
+/*     emphasis; remove it from the container.                        */
+/*  2. Otherwise remove emphasis from pciSelected, then enumerate     */
+/*     remaining source-emphasized records and remove from each.      */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -716,9 +752,11 @@ static VOID TurnOffSourceEmphasis( HWND hwndClient )
 /*                                                                    */
 /*  COUNT THE NUMBER OF RECORDS THAT ARE CURRENTLY SELECTED.          */
 /*                                                                    */
-/*  INPUT: pointer to the record that was under the pointer.          */
+/*  INPUT: container window handle,                                   */
+/*         pointer to the record that was under the pointer.          */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Enumerate CRA_SELECTED records via CM_QUERYRECORDEMPHASIS.    */
+/*  2. Count them, and note whether pciUnderMouse is in the set.      */
 /*                                                                    */
 /*  OUTPUT: number of selected recs, 0 if none, -1 if the record that */
 /*          the mouse pointer was under was not selected.             */
@@ -765,7 +803,10 @@ static INT CountSelectedRecs( HWND hwndCnr, PCNRITEM pciUnderMouse )
 /*         pointer to base directory name for this client window,     */
 /*         pointer to CNRITEM record to create window for             */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. If pci is a non-'.' directory, build its fully qualified path  */
+/*     via FullyQualify (common.c) and call CreateDirectoryWin.       */
+/*  2. Pass pci as the third parameter so the new container shares    */
+/*     records with the current one.                                  */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -779,7 +820,7 @@ static VOID NewWin( HWND hwndCnr, PSZ szBaseDir, PCNRITEM pci )
     {
         CHAR szDirectory[ CCHMAXPATH + 1 ];
 
-        (void) strcpy( szDirectory, (const char * restrict) szBaseDir );
+        (void) strcpy( szDirectory, (const char *)szBaseDir );
 
         // Recursively go up the tree and add the subdirectory names to the
         // fully qualified directory name.
@@ -805,7 +846,11 @@ static VOID NewWin( HWND hwndCnr, PSZ szBaseDir, PCNRITEM pci )
 /*         menu window handle,                                        */
 /*         pointer to CNRITEM record that is selected                 */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Set conditional-cascade mode for View and Sort submenus.      */
+/*  2. Remove CreateNewWindow item if no directory is selected.       */
+/*  3. Remove Arrange item if not in Icon view.                       */
+/*  4. Add Other Window submenu items for sibling directory windows;  */
+/*     remove the submenu entirely if no other windows exist.         */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -880,7 +925,9 @@ static VOID TailorMenu( HWND hwndCnr, HWND hwndMenu, PCNRITEM pciSelected )
 /*         id of submenu to make conditionally cascaded,              */
 /*         id of item to make the default item of the cascaded menu   */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Query the MENUITEM for the submenu to get its hwndSubMenu.    */
+/*  2. Set MS_CONDITIONALCASCADE on the submenu via WinSetWindowBits. */
+/*  3. Set the default item via MM_SETDEFAULTITEMID.                  */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -922,9 +969,12 @@ static VOID SetConditionalCascade( HWND hwndMenu, USHORT idSubMenu,
 /*  INPUT: container window handle,                                   */
 /*         menu window handle                                         */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Enumerate all top-level desktop windows.                       */
+/*  2. For each one that has a client with class DIRECTORY_WINCLASS  */
+/*     (but is not our own window), call AddOtherWinItem to append a */
+/*     menu entry for it.                                            */
 /*                                                                    */
-/*  OUTPUT: number of other windows                                   */
+/*  OUTPUT: number of other windows added                             */
 /*                                                                    */
 /*--------------------------------------------------------------------*/
 /**********************************************************************/
@@ -1006,7 +1056,9 @@ static INT AddOtherWindows( HWND hwndCnr, HWND hwndMenu )
 /*         OtherWindow submenu window handle,                         */
 /*         menu item id                                               */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Save hwndOtherFrame in pi->hwndFrame[] indexed by menu id.   */
+/*  2. Insert a text menu item whose label is the other window's     */
+/*     szDirectory.                                                   */
 /*                                                                    */
 /*  OUTPUT: TRUE or FALSE if successful or not                        */
 /*                                                                    */
@@ -1036,9 +1088,13 @@ static BOOL AddOtherWinItem( HWND hwndClient, HWND hwndOtherFrame,
 
         piUs->hwndFrame[ idMenuItem - IDM_OTHERWIN_ITEM1 ] = hwndOtherFrame;
 
-        sMenuRC = (LONG) WinSendMsg( hwndSubMenu, MM_INSERTITEM,
-                                      MPFROMP( &miItem ),
-                                      MPFROMP( piOther->szDirectory ) );
+        // MM_INSERTITEM returns the position inserted (SHORT) or MIT_MEMERROR/
+        // MIT_ERROR on failure. SHORT1FROMMR extracts the low SHORT from the
+        // MRESULT without a pointer-to-integer cast.
+
+        sMenuRC = SHORT1FROMMR( WinSendMsg( hwndSubMenu, MM_INSERTITEM,
+                                            MPFROMP( &miItem ),
+                                            MPFROMP( piOther->szDirectory ) ) );
 
         if( sMenuRC == MIT_MEMERROR || sMenuRC == MIT_ERROR )
         {
@@ -1066,9 +1122,11 @@ static BOOL AddOtherWinItem( HWND hwndClient, HWND hwndOtherFrame,
 /*  INPUT: client window handle,                                      */
 /*         id of submenu                                              */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Find the submenu's MENUITEM to get hwndSubMenu.               */
+/*  2. Send MM_QUERYDEFAULTITEMID to hwndSubMenu.                     */
+/*  3. Extract the item ID via LONGFROMMR to avoid pointer cast.      */
 /*                                                                    */
-/*  OUTPUT: id of default item                                        */
+/*  OUTPUT: id of default item (0 if not found)                       */
 /*                                                                    */
 /*--------------------------------------------------------------------*/
 /**********************************************************************/
@@ -1084,8 +1142,11 @@ static USHORT GetDefaultId( HWND hwndClient, USHORT idSubMenu )
         if( WinSendMsg( hwndMenu, MM_QUERYITEM, MPFROM2SHORT( idSubMenu, TRUE ),
                         &mi ))
         {
-            id = (ULONG) WinSendMsg( mi.hwndSubMenu,
-                                      MM_QUERYDEFAULTITEMID, NULL, NULL );
+            // LONGFROMMR converts MRESULT (void*) to LONG without a
+            // pointer-to-integer cast warning.
+
+            id = (USHORT) LONGFROMMR( WinSendMsg( mi.hwndSubMenu,
+                                      MM_QUERYDEFAULTITEMID, NULL, NULL ) );
 
             if( !id )
                 Msg( (PSZ) "GetDefaultId MM_QUERYDEFAULTITEMID RC(%X)",

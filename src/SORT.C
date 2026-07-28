@@ -14,6 +14,9 @@
  * HISTORY:                                                          *
  *                                                                   *
  *  11-01-92 - Program coded.                                        *
+ *  2026-07-28 Moved to src/. Changed `pv = pv` no-op suppressor to  *
+ *               `(void)pv` which is the correct C idiom for         *
+ *               silencing unused-parameter diagnostics.             *
  *                                                                   *
  *                                                                   *
  *********************************************************************/
@@ -65,9 +68,10 @@ static SHORT APIENTRY DateCompare( PRECORDCORE prc1,PRECORDCORE prc2,PVOID pv );
 /*  SORT THE CONTAINER BY A KEY.                                      */
 /*                                                                    */
 /*  INPUT: client window handle,                                      */
-/*         type of sort                                               */
+/*         type of sort (IDM_SORT_NAME, IDM_SORT_DATETIME,            */
+/*                       IDM_SORT_DIRORDER)                           */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Send CM_SORTRECORD with the appropriate comparison function.   */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -108,9 +112,7 @@ VOID SortContainer( HWND hwndClient, ULONG ulSortType )
 /*                                                                    */
 /*  INPUT: first record in the compare,                               */
 /*         second record in the sort,                                 */
-/*         dummy parm to satisfy function prototype                   */
-/*                                                                    */
-/*  1.                                                                */
+/*         unused parm required by CM_SORTRECORD callback prototype   */
 /*                                                                    */
 /*  OUTPUT: 0 = both are equal                                        */
 /*         -1 = first is less than second                             */
@@ -120,7 +122,7 @@ VOID SortContainer( HWND hwndClient, ULONG ulSortType )
 /**********************************************************************/
 static SHORT APIENTRY NameCompare( PRECORDCORE prc1, PRECORDCORE prc2, PVOID pv)
 {
-    pv = pv;    // to keep the compiler happy
+    (void)pv;
 
     return strcmp( ((PCNRITEM)prc1)->szFileName, ((PCNRITEM)prc2)->szFileName );
 }
@@ -132,9 +134,7 @@ static SHORT APIENTRY NameCompare( PRECORDCORE prc1, PRECORDCORE prc2, PVOID pv)
 /*                                                                    */
 /*  INPUT: first record in the compare,                               */
 /*         second record in the sort,                                 */
-/*         dummy parm to satisfy function prototype                   */
-/*                                                                    */
-/*  1.                                                                */
+/*         unused parm required by CM_SORTRECORD callback prototype   */
 /*                                                                    */
 /*  OUTPUT: 0 = both are equal                                        */
 /*         -1 = first is less than second                             */
@@ -147,7 +147,7 @@ static SHORT APIENTRY DirCompare( PRECORDCORE prc1, PRECORDCORE prc2, PVOID pv )
     INT iDirPosition1 = ((PCNRITEM) prc1)->iDirPosition;
     INT iDirPosition2 = ((PCNRITEM) prc2)->iDirPosition;
 
-    pv = pv;    // to keep the compiler happy
+    (void)pv;
 
     if( iDirPosition1 == iDirPosition2 )
         return 0;
@@ -164,9 +164,7 @@ static SHORT APIENTRY DirCompare( PRECORDCORE prc1, PRECORDCORE prc2, PVOID pv )
 /*                                                                    */
 /*  INPUT: first record in the compare,                               */
 /*         second record in the sort,                                 */
-/*         dummy parm to satisfy function prototype                   */
-/*                                                                    */
-/*  1.                                                                */
+/*         unused parm required by CM_SORTRECORD callback prototype   */
 /*                                                                    */
 /*  OUTPUT: 0 = both are equal                                        */
 /*         -1 = first is less than second                             */
@@ -181,7 +179,7 @@ static SHORT APIENTRY DateCompare( PRECORDCORE prc1, PRECORDCORE prc2, PVOID pv)
     CHAR  szDate1[ 12 ], szDate2[ 12 ];
     INT   iResult;
 
-    pv = pv;    // to keep the compiler happy
+    (void)pv;
 
     (void) sprintf( szDate1,"%04u%02u%02u",date1.year, date1.month, date1.day );
     (void) sprintf( szDate2,"%04u%02u%02u",date2.year, date2.month, date2.day );

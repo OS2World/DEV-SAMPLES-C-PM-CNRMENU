@@ -46,6 +46,12 @@
  *               FillInRecord function. Pass this variable as a      *
  *               parameter to that function. Pass it thru from the   *
  *               ProcessDirectory function on down.                  *
+ *  2026-07-28 Moved to src/. Added stdint.h for uintptr_t.         *
+ *               Fixed GCC pointer-to-int cast warning in            *
+ *               InsertRecords call: use (UINT)(uintptr_t) two-step  *
+ *               cast so each step is valid (pointer->uintptr_t is   *
+ *               defined by C99; uintptr_t->UINT is integer          *
+ *               truncation, safe on 32-bit OS/2 where both are 4B). *
  *                                                                   *
  *                                                                   *
  *********************************************************************/
@@ -70,11 +76,17 @@
 /**********************************************************************/
 
 #include <os2.h>
+#include <process.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "cnrmenu.h"
+
+#ifndef SPTR_QUESICON
+#define SPTR_QUESICON 12
+#endif
 
 /*********************************************************************/
 /*------------------- APPLICATION DEFINITIONS -----------------------*/
@@ -116,9 +128,16 @@ static BOOL InsertSharedRecs ( HAB hab, HWND hwndCnrShare, HWND hwndCnr,
 /*                                                                    */
 /*  THREAD THAT FILLS THE CONTAINER WITH RECORDS.                     */
 /*                                                                    */
-/*  INPUT: pointer to thread parameters passed by main thread         */
+/*  INPUT: pointer to THREADPARMS allocated by CreateContainer        */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Create a message queue for this thread (required for           */
+/*     WinSendMsg calls to the container).                            */
+/*  2. If hwndCnrShare and pciParent are set, share records from the  */
+/*     existing container (InsertSharedDir). Otherwise, read the      */
+/*     file system and allocate new records (ProcessDirectory).        */
+/*  3. Destroy the message queue, terminate the anchor block, and     */
+/*     free the THREADPARMS block.                                    */
+/*  4. Post UM_CONTAINER_FILLED to the client window.                 */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -204,9 +223,12 @@ VOID PopulateContainer( PVOID pThreadParms )
 /*         container window handle,                                   */
 /*         parent container record,                                   */
 /*         base directory name with drive qualifier,                  */
-/*         directory to display                                       */
+/*         directory to display (subdirectory name, may be NULL)      */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Allocate a file-find buffer and a work path buffer.           */
+/*  2. Build the full path and append \*.* for DosFindFirst.          */
+/*  3. Insert each batch of found files via InsertRecords.            */
+/*  4. Recurse into subdirectories via RecurseSubdirs.                */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -234,18 +256,18 @@ static VOID ProcessDirectory( HAB hab, HWND hwndCnr, PCNRITEM pciParent,
         // Keep a placeholder so we can strip the trailing '\*.*' after the
         // DosFindFirst has completed.
 
-        (void) strcpy( (char * restrict) szFileSpec, (const char * restrict) szDirBase );
+        (void) strcpy( (char *)szFileSpec, (const char *)szDirBase );
 
         if( szDirectory )
         {
-            (void) strcat( (char * restrict) szFileSpec, "\\" );
+            (void) strcat( (char *)szFileSpec, "\\" );
 
-            (void) strcat( (char * restrict) szFileSpec, (const char * restrict) szDirectory );
+            (void) strcat( (char *)szFileSpec, (const char *)szDirectory );
         }
 
-        pchEndPath = szFileSpec + strlen( (const char *) szFileSpec );
+        pchEndPath = szFileSpec + strlen( (const char *)szFileSpec );
 
-        (void) strcat( (char * restrict) szFileSpec, "\\*.*" );
+        (void) strcat( (char *)szFileSpec, "\\*.*" );
 
         // Get buffer of files up to the maximum FILES_TO_GET files. Get both
         // normal files and directories.
@@ -275,9 +297,14 @@ static VOID ProcessDirectory( HAB hab, HWND hwndCnr, PCNRITEM pciParent,
             // inserted into the container. We do this so the user can sort by
             // a different key and at a later time get back to this order by
             // sorting by this variable.
+            //
+            // The (UINT)(uintptr_t) two-step cast converts the INT* to an
+            // unsigned integer type of pointer size (uintptr_t), then narrows
+            // to UINT. Both steps are defined by C99 and the sizes are equal
+            // on 32-bit OS/2, so no data is lost.
 
             if( InsertRecords( hab, hwndCnr, pciParent, szFileSpec, pffb,
-                               ulMaxFiles, (UINT) &iDirPosition ) )
+                               ulMaxFiles, (UINT)(uintptr_t)&iDirPosition ) )
 
                 // Get more files if there are any
 
@@ -320,7 +347,9 @@ static VOID ProcessDirectory( HAB hab, HWND hwndCnr, PCNRITEM pciParent,
 /*         parent container record,                                   */
 /*         base directory name with drive qualifier                   */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Enumerate child records of pciParent (or top-level if NULL).  */
+/*  2. For each child that is a non-'.' directory, recurse into it    */
+/*     by calling ProcessDirectory.                                   */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -398,9 +427,12 @@ static VOID RecurseSubdirs( HAB hab, HWND hwndCnr, PCNRITEM pciParent,
 /*         directory being displayed,                                 */
 /*         buffer containing directory entries,                       */
 /*         count of files in directory buffer,                        */
-/*         pointer to relative position of this file in the directory */
-/*                                                                    */
-/*  1.                                                                */
+/*         piDirPosition - address of the caller's iDirPosition INT  */
+/*           passed as a UINT (pointer-sized unsigned integer).       */
+/*           Each call to FillInRecord pre-increments this value so  */
+/*           files get monotonically increasing position numbers.     */
+/*           Using the caller's stack-frame address as the base      */
+/*           naturally separates files from different recursive calls.*/
 /*                                                                    */
 /*  OUTPUT: TRUE or FALSE if successful or not                        */
 /*                                                                    */
@@ -522,7 +554,12 @@ static BOOL InsertRecords( HAB hab, HWND hwndCnr, PCNRITEM pciParent,
 /*         pointer to FILEFINDBUF3 that describes the file,           */
 /*         relative position of this file in the directory            */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Copy file name into pci->szFileName.                          */
+/*  2. Build the fully qualified file name for WinLoadFileIcon.       */
+/*  3. Load the file icon (shared copy); fall back to SPTR_QUESICON. */
+/*  4. Fill in CNRITEM and MINIRECORDCORE fields.                     */
+/*     Note: rc.pszIcon is set to point to szFileName because the    */
+/*     container uses a pointer field, not the char array directly.  */
 /*                                                                    */
 /*  OUTPUT: TRUE or FALSE if successful or not                        */
 /*                                                                    */
@@ -544,7 +581,7 @@ static BOOL FillInRecord( PCNRITEM pci, PSZ szDirectory, PFILEFINDBUF3 pffb,
 
     (void) memset( szFullFileName, 0, sizeof( szFullFileName ) );
 
-    (void) strcpy( szFullFileName, (const char * restrict) szDirectory );
+    (void) strcpy( szFullFileName, (const char *)szDirectory );
 
     szFullFileName[ strlen( szFullFileName ) ] = '\\';
 
@@ -602,7 +639,10 @@ static BOOL FillInRecord( PCNRITEM pci, PSZ szDirectory, PFILEFINDBUF3 pffb,
 /*         CNRITEM that is the parent record in the old container,    */
 /*         CNRITEM that is the parent record in the new container     */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Update the titlebar to show progress.                         */
+/*  2. Insert the shared records via InsertSharedRecs.                */
+/*  3. Invalidate all top-level records at once (performance).        */
+/*  4. Recurse into subdirectories via RecurseSharedDirs.             */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -661,9 +701,11 @@ static VOID InsertSharedDir( HAB hab, HWND hwndCnrShare, HWND hwndCnr,
 /*  INPUT: thread's anchor block handle,                              */
 /*         container window handle containing shared records,         */
 /*         container window handle to insert records into,            */
-/*         parent record in the new container                         */
+/*         parent record in the source container                       */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Enumerate children of pciParent in the source container.      */
+/*  2. For each child that is a non-'.' directory, call              */
+/*     InsertSharedDir to recursively copy that subtree.              */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -727,7 +769,11 @@ static VOID RecurseSharedDirs( HAB hab, HWND hwndCnrShare, HWND hwndCnr,
 /*         parent record in the container with the shared records,    */
 /*         parent record in new container                             */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Enumerate children of pciShrParent in the source container.   */
+/*  2. Insert each one into hwndCnr via CM_INSERTRECORD (one at a    */
+/*     time to avoid sort-related container bugs).                    */
+/*  3. Invalidate inserted records immediately if not at top level;   */
+/*     at top level the caller invalidates all at once for speed.     */
 /*                                                                    */
 /*  OUTPUT: TRUE or FALSE if successful or not                        */
 /*                                                                    */

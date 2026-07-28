@@ -1,0 +1,61 @@
+# makefile-gcc
+# Build CNRMENU.EXE with GCC 9.2 (bitwiseworks/kLIBC) on OS/2
+#
+# Usage:
+#   compile-gcc.cmd          normal build
+#   compile-gcc.cmd clean    remove output files
+#
+# Tools required:
+#   gcc   - GCC 9.2 (OS/2 RPM build, bitwiseworks)
+#   wrc   - Watcom Resource Compiler (watcom-wrc package)
+#   wl    - Watcom Linker (watcom-wlink-hll package)
+#   make  - GNU make 3.81+
+
+SRC = src
+OUT = bin-gcc
+
+CFLAGS = -Wall -Wno-unknown-pragmas -Zomf -O2 -I$(SRC) -x c
+
+OBJS = $(OUT)/cnrmenu.obj \
+       $(OUT)/common.obj  \
+       $(OUT)/create.obj  \
+       $(OUT)/ctxtmenu.obj \
+       $(OUT)/edit.obj    \
+       $(OUT)/populate.obj \
+       $(OUT)/sort.obj
+
+all: $(OUT)/CNRMENU.EXE
+
+$(OUT):
+	mkdir $(OUT)
+
+$(OUT)/CNRMENU.EXE: $(OBJS) $(SRC)/cnrmenu-gcc.def $(OUT)/cnrmenu.res
+	gcc -Zomf -o $@ $(OBJS) $(SRC)/cnrmenu-gcc.def
+	wrc $(OUT)/cnrmenu.res $@
+
+$(OUT)/cnrmenu.res: $(SRC)/CNRMENU.RC $(SRC)/cnrmenu.h $(SRC)/cnrmenu.ico | $(OUT)
+	wrc -r -bt=os2 -q -I$(SRC) $(SRC)/CNRMENU.RC -fo=$@
+
+$(OUT)/cnrmenu.obj: $(SRC)/CNRMENU.C $(SRC)/CNRMENU.H | $(OUT)
+	gcc $(CFLAGS) -c -o $@ $(SRC)/CNRMENU.C
+
+$(OUT)/common.obj: $(SRC)/COMMON.C $(SRC)/CNRMENU.H | $(OUT)
+	gcc $(CFLAGS) -c -o $@ $(SRC)/COMMON.C
+
+$(OUT)/create.obj: $(SRC)/CREATE.C $(SRC)/CNRMENU.H | $(OUT)
+	gcc $(CFLAGS) -c -o $@ $(SRC)/CREATE.C
+
+$(OUT)/ctxtmenu.obj: $(SRC)/CTXTMENU.C $(SRC)/CNRMENU.H | $(OUT)
+	gcc $(CFLAGS) -c -o $@ $(SRC)/CTXTMENU.C
+
+$(OUT)/edit.obj: $(SRC)/EDIT.C $(SRC)/CNRMENU.H | $(OUT)
+	gcc $(CFLAGS) -c -o $@ $(SRC)/EDIT.C
+
+$(OUT)/populate.obj: $(SRC)/POPULATE.C $(SRC)/CNRMENU.H | $(OUT)
+	gcc $(CFLAGS) -c -o $@ $(SRC)/POPULATE.C
+
+$(OUT)/sort.obj: $(SRC)/SORT.C $(SRC)/CNRMENU.H | $(OUT)
+	gcc $(CFLAGS) -c -o $@ $(SRC)/SORT.C
+
+clean:
+	rm -f $(OUT)/*.exe $(OUT)/*.obj $(OUT)/*.res $(OUT)/*.map

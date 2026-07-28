@@ -1,7 +1,7 @@
 /*********************************************************************
  *                                                                   *
- * MODULE NAME :  create.c               			     *
- * 			                                             *
+ * MODULE NAME :  create.c                                           *
+ *                                                                   *
  *                                                                   *
  * DESCRIPTION:                                                      *
  *                                                                   *
@@ -39,6 +39,7 @@
  *             Pass WINCREATE stuct in WinCreateWindow of client     *
  *               rather than just the directory name.                *
  *             Add CCS_EXTENDSEL to container styles.                *
+ *  2026-07-28 Moved to src/. No code changes.                       *
  *                                                                   *
  *                                                                   *
  *********************************************************************/
@@ -104,7 +105,11 @@ static VOID UseCmdLineDirectory  ( PSZ pszDirectoryOut, PSZ szDirectoryIn );
 /*         window handle with which to share records, or NULLHANDLE,  */
 /*         pointer to CNRITEM if using shared records, or NULL        */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Create the frame window (WC_FRAME) with FRAME_FLAGS.          */
+/*  2. Allocate a WINCREATE block and fill it with the parameters.   */
+/*  3. Create the client window, passing the WINCREATE block as       */
+/*     CTLDATA. The client frees this block in its WM_CREATE handler. */
+/*  4. Show and activate the frame via WinSetWindowPos.               */
 /*                                                                    */
 /*  OUTPUT: window handle of created frame or NULLHANDLE if error     */
 /*                                                                    */
@@ -183,7 +188,10 @@ HWND CreateDirectoryWin( PSZ szDirectory, HWND hwndCnrShare, PCNRITEM pciParent)
 /*         window handle with which to share records, or NULLHANDLE,  */
 /*         pointer to CNRITEM if using shared records, or NULL        */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Create the container with CCS_EXTENDSEL|CCS_MINIRECORDCORE.   */
+/*  2. Set up detail-view columns via SetContainerColumns.            */
+/*  3. Determine the starting directory (command line or current).    */
+/*  4. Allocate THREADPARMS and start the PopulateContainer thread.   */
 /*                                                                    */
 /*  OUTPUT: Container window handle                                   */
 /*                                                                    */
@@ -273,7 +281,11 @@ HWND CreateContainer( HWND hwndClient, PSZ szDirectory, HWND hwndCnrShare,
 /*                                                                    */
 /*  INPUT: container window handle                                    */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Allocate FIELDINFO for CONTAINER_COLUMNS columns.              */
+/*  2. Fill in column descriptors for Icon, File Name, File Size,    */
+/*     Date, and Time.                                                */
+/*  3. Insert all columns via CM_INSERTDETAILFIELDINFO.               */
+/*  4. Set the splitbar position via CM_SETCNRINFO.                   */
 /*                                                                    */
 /*  OUTPUT: TRUE or FALSE if successful or not                        */
 /*                                                                    */
@@ -408,9 +420,11 @@ static BOOL SetContainerColumns( HWND hwndCnr )
 /*                                                                    */
 /*  INPUT: pointer to buffer in which to place path info              */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Call DosQueryCurrentDisk to get the current drive letter.     */
+/*  2. Call DosQueryCurrentDir to get the directory path.             */
+/*  3. Strip any trailing backslash (root directory special case).    */
 /*                                                                    */
-/*  OUTPUT: nothing                                                   */
+/*  OUTPUT: nothing (pszDirectory filled in)                          */
 /*                                                                    */
 /*--------------------------------------------------------------------*/
 /**********************************************************************/
@@ -430,10 +444,10 @@ static VOID GetCurrentDirectory( PSZ pszDirectory )
     {
         pszDirectory[ 0 ] = ulCurrDrive + ('A' - 1);
 
-        (void) strcpy( (char * restrict) pszDirectory + 1, ":\\" );
+        (void) strcpy( (char *)pszDirectory + 1, ":\\" );
     }
     else
-        (void) strcpy( (char * restrict) pszDirectory, "C:\\" );
+        (void) strcpy( (char *)pszDirectory, "C:\\" );
 
     rc = DosQueryCurrentDir( 0, pszDirectory + 3, &cbDirPath );
 
@@ -460,20 +474,21 @@ static VOID GetCurrentDirectory( PSZ pszDirectory )
 /*  INPUT: pointer to buffer in which to place correct path,          */
 /*         directory input at the commandline                         */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Copy the command-line directory into pszDirectoryOut.          */
+/*  2. Strip any trailing backslash.                                  */
 /*                                                                    */
-/*  OUTPUT: nothing                                                   */
+/*  OUTPUT: nothing (pszDirectoryOut filled in)                       */
 /*                                                                    */
 /*--------------------------------------------------------------------*/
 /**********************************************************************/
 static VOID UseCmdLineDirectory( PSZ pszDirectoryOut, PSZ szDirectoryIn )
 {
-    (void) strcpy( (char * restrict) pszDirectoryOut, (const char * restrict) szDirectoryIn );
+    (void) strcpy( (char *)pszDirectoryOut, (const char *)szDirectoryIn );
 
     // If the user ended their directory name with a backslash, take it off
     // because this program needs to have just the base directory name here.
 
-    if( pszDirectoryOut[ strlen( (const char * restrict) pszDirectoryOut ) - 1 ] == '\\' )
+    if( pszDirectoryOut[ strlen( (const char *)pszDirectoryOut ) - 1 ] == '\\' )
         pszDirectoryOut[ strlen( (const char *) pszDirectoryOut ) - 1 ] = 0;
 
     return;

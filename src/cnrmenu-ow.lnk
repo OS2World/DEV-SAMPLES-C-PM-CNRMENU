@@ -1,0 +1,13 @@
+SYSTEM os2v2_pm
+FILE bin-ow/cnrmenu.obj
+FILE bin-ow/common.obj
+FILE bin-ow/create.obj
+FILE bin-ow/ctxtmenu.obj
+FILE bin-ow/edit.obj
+FILE bin-ow/populate.obj
+FILE bin-ow/sort.obj
+NAME bin-ow/CNRMENU.EXE
+OPTION MAP=bin-ow/CNRMENU.MAP
+OPTION QUIET
+OPTION STACK=65536
+OPTION DESCRIPTION '@#OS2World:1.02#@##1## 2026-07-28     ARCAOS-507::::::@@Container context menu and record sharing sample'

@@ -1,7 +1,7 @@
 /*********************************************************************
  *                                                                   *
- * MODULE NAME :  cnrmenu.c             			     *
- * 			                                             *
+ * MODULE NAME :  cnrmenu.c                                          *
+ *                                                                   *
  *                                                                   *
  * HOW TO RUN THIS PROGRAM:                                          *
  *                                                                   *
@@ -60,9 +60,6 @@
  *  through its whole operation as you will quickly get lost in the  *
  *  details.                                                         *
  *                                                                   *
- *  I hope this code proves useful for other PM programmers. The     *
- *  more of us the better!                                           *
- *                                                                   *
  * HISTORY:                                                          *
  *                                                                   *
  *  10-24-92 - Source copied from CNRBASE.EXE sample.                *
@@ -81,6 +78,8 @@
  *  12-26-92   Added a WinDestroyWindow of hwndMenu in WM_MENUEND.   *
  *  01-01-93   Initialize fTrue for all while( fTrue ) loops.        *
  *  03-27-93   Changed PSZ szArg to char *szArg  - compiler bug.     *
+ *  2026-07-28 Moved sources to src/, added GCC and OW build systems.*
+ *             Fixed MRESULT-to-INT casts via LONGFROMMR() macro.    *
  *                                                                   *
  *                                                                   *
  *********************************************************************/
@@ -143,11 +142,18 @@ FNWP wpClient;
 /*                                                                    */
 /*  PROGRAM ENTRYPOINT                                                */
 /*                                                                    */
-/*  INPUT: command line                                               */
+/*  INPUT: iArgc - argument count,                                    */
+/*         szArg - argument vector (szArg[1] = optional directory)    */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Initialize the fTrue sentinel used in while(fTrue) loops.     */
+/*  2. Optionally take starting directory from command line.          */
+/*  3. Initialize the PM anchor block and message queue.              */
+/*  4. Register the client window class.                              */
+/*  5. Create the first directory window (frame/client/container).    */
+/*  6. Run the message loop until WM_QUIT is posted.                  */
+/*  7. Tear down the message queue and anchor block.                  */
 /*                                                                    */
-/*  OUTPUT: return code                                               */
+/*  OUTPUT: 0 (always)                                                */
 /*                                                                    */
 /*--------------------------------------------------------------------*/
 /**********************************************************************/
@@ -364,9 +370,13 @@ MRESULT EXPENTRY wpClient( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 /*  PROCESS WM_CREATE FOR THE CLIENT WINDOW.                          */
 /*                                                                    */
 /*  INPUT: client window handle,                                      */
-/*         pointer to window creation parameters                      */
+/*         pointer to window creation parameters (WINCREATE struct)  */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Allocate and zero-initialize the per-window INSTANCE block.   */
+/*  2. Store the INSTANCE pointer in the window's reserved word.      */
+/*  3. Call CreateContainer to create the container child window.     */
+/*  4. Set initial view to Tree/Icon via CtxtmenuSetView.            */
+/*  5. Free the WINCREATE block that was allocated in create.c.      */
 /*                                                                    */
 /*  OUTPUT: TRUE or FALSE if successful or not                        */
 /*                                                                    */
@@ -424,12 +434,16 @@ static BOOL InitClient( HWND hwndClient, PWINCREATE pwc )
 /*  PROCESS WM_CONTROL MESSAGES FOR THE CLIENT WINDOW.                */
 /*                                                                    */
 /*  INPUT: client window handle,                                      */
-/*         notify code,                                               */
+/*         notify code (SHORT2 of mp1 in WM_CONTROL),                */
 /*         2nd WM_CONTROL message parameter                           */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Dispatch to the appropriate handler based on notify code.     */
+/*     CN_ENTER      - user double-clicked; RecordSelected            */
+/*     CN_CONTEXTMENU - right-click; CtxtmenuCreate                  */
+/*     CN_BEGINEDIT  - direct-edit started; EditBegin                 */
+/*     CN_ENDEDIT    - direct-edit ended; EditEnd                     */
 /*                                                                    */
-/*  OUTPUT: TRUE or FALSE if message processed                        */
+/*  OUTPUT: TRUE if message was handled, FALSE otherwise              */
 /*                                                                    */
 /*--------------------------------------------------------------------*/
 /**********************************************************************/
@@ -491,7 +505,10 @@ static BOOL wmControl( HWND hwndClient, USHORT usNotifyCode, MPARAM mp2 )
 /*  INPUT: client window handle,                                      */
 /*         pointer to the NOTIFYRECORDENTER structure                 */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. If the record is a directory (not '.' or '..'), set the       */
+/*     selected record in instance data and simulate an               */
+/*     IDM_CREATE_NEWWIN command using CMDSRC_OTHER so the           */
+/*     CtxtmenuCommand handler can differentiate it from a menu pick. */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -541,7 +558,9 @@ static VOID RecordSelected( HWND hwndClient, PNOTIFYRECORDENTER pnre )
 /*                                                                    */
 /*  INPUT: client window handle                                       */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. If the user closed the window while filling was in progress,  */
+/*     destroy the frame now (the fill thread has already stopped).  */
+/*  2. Otherwise mark fContainerFilled and update the titlebar.       */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -586,7 +605,10 @@ static VOID ContainerFilled( HWND hwndClient )
 /*                                                                    */
 /*  INPUT: client window handle                                       */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. If the fill thread has finished, destroy the frame immediately.*/
+/*  2. If the fill thread is still running, set fShutdown so the     */
+/*     thread will stop, then update the titlebar. The frame will     */
+/*     be destroyed when UM_CONTAINER_FILLED arrives.                 */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -628,11 +650,15 @@ static VOID UserWantsToClose( HWND hwndClient )
 /**********************************************************************/
 /*-------------------------- FreeResources ---------------------------*/
 /*                                                                    */
-/*  FREE PROGRAM RESOURCES.                                           */
+/*  FREE PROGRAM RESOURCES ON WM_DESTROY.                            */
 /*                                                                    */
 /*  INPUT: client window handle                                       */
 /*                                                                    */
-/*  1.                                                                */
+/*  1. Free the INSTANCE block allocated in InitClient.              */
+/*  2. Release the detail column (FIELDINFO) memory via               */
+/*     CM_REMOVEDETAILFIELDINFO with CMA_FREE.                        */
+/*  3. Release all container record memory via CM_REMOVERECORD        */
+/*     with CMA_FREE.                                                 */
 /*                                                                    */
 /*  OUTPUT: nothing                                                   */
 /*                                                                    */
@@ -648,19 +674,20 @@ static VOID FreeResources( HWND hwndClient )
         Msg( (PSZ) "FreeResources cant get Inst data. RC(%X)", HWNDERR( hwndClient ));
 
     // Free the memory that was allocated with CM_ALLOCDETAILFIELDINFO. The
-    // zero in the first SHORT of mp2 says to free memory for all columns
+    // zero in the first SHORT of mp2 says to free memory for all columns.
+    // LONGFROMMR converts the void* MRESULT to a LONG for the -1 comparison.
 
-    if( -1 == (INT) WinSendDlgItemMsg( hwndClient, CNR_DIRECTORY,
+    if( -1 == (INT) LONGFROMMR( WinSendDlgItemMsg( hwndClient, CNR_DIRECTORY,
                                        CM_REMOVEDETAILFIELDINFO, NULL,
-                                       MPFROM2SHORT( 0, CMA_FREE ) ) )
+                                       MPFROM2SHORT( 0, CMA_FREE ) ) ) )
         Msg( (PSZ) "CM_REMOVEDETAILFIELDINFO failed! RC(%X)", HWNDERR( hwndClient ) );
 
     // Free the memory allocated by the CM_INSERTRECORD messages. The zero
-    // in the first SHORT of mp2 says to free memory for all records
+    // in the first SHORT of mp2 says to free memory for all records.
 
-    if( -1 == (INT) WinSendDlgItemMsg( hwndClient, CNR_DIRECTORY,
+    if( -1 == (INT) LONGFROMMR( WinSendDlgItemMsg( hwndClient, CNR_DIRECTORY,
                                        CM_REMOVERECORD, NULL,
-                                       MPFROM2SHORT( 0, CMA_FREE ) ) )
+                                       MPFROM2SHORT( 0, CMA_FREE ) ) ) )
         Msg( (PSZ) "CM_REMOVERECORD failed! RC(%X)", HWNDERR( hwndClient ) );
 
     return;
@@ -668,4 +695,4 @@ static VOID FreeResources( HWND hwndClient )
 
 /*************************************************************************
  *                     E N D     O F     S O U R C E                     *
- ************************************************* ************************/
+ *************************************************************************/
